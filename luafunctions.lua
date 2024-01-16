@@ -253,30 +253,94 @@ NumberFunction = {
 
 --Lexicographically
 StringFunction = {
-  comparing = function(x, y)
-  end 
+    comparing = function(x, y)
+        assert(type(x)=="string", "The first argument of the function must be of type string, not: "..type(x))
+        assert(type(y)=="string", "The second argument of the function must be of type string, not: "..type(y))
+        if x:len() == y:len() then 
+            --share one single for loop to perform the operation
+            for i=0, x:len()-1 do 
+                if (x:get(i):byte() >= 97 and x:get(i):byte() <= 122) or 
+                   (x:get(i):byte() >= 65 and x:get(i):byte() <= 90) then
+                    --capital letters take away 32
+                    x:get(i):byte()
+                end
+            end 
+        end 
+    end 
 } 
+
+--Ternary operators
+local Operator = {
+    Ternary = function(cond, ifTrue, ifFalse) 
+        assert(type(cond)=="boolean", "The first condition must be a boolean, not " .. type(cond))
+        assert(ifTrue~=nil and ifFalse~=nil)
+        if cond then 
+            return ifTrue
+        else 
+            return ifFalse
+        end 
+    end
+}
 
 function ConstructFunction(mode, body)
     --main program logic
     assert(type(body)=="string", "Body must be of type string")
     if mode == 'p' then --Predicate   (one parameter but must return a boolean)
         return function(i)
-            --Implicitly insert return keyword into statement for lambda expressions
-            assert(type(load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "Predicate", "t", {i=i})())=="boolean", "Predicate must return a value of type boolean")
-            return load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "Predicate", "t", {i=i})()
+            local variables = TokenizeAndExtractVariables(body)
+            if #variables == 1 then
+                local assignmentTable = "{"
+                for _, v in pairs(variables) do
+                    assignmentTable = assignmentTable .. v .. "=%d"
+                end 
+                assignmentTable = assignmentTable .. "}"
+                assignmentTable = string.format(assignmentTable, i)
+                local t = load("return "..assignmentTable)()
+                --Implicitly insert return keyword into statement for lambda expressions
+                assert(type(load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "Predicate", "t", t)())=="boolean", "Predicate must return a value of type boolean")
+                return load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "Predicate", "t", t)()
+            else 
+                --Predicates must have exactly 1 parameter, not more and not less
+                error("You can only have up to 1 type of variables in this predicate. Not " .. #variables)
+            end 
         end
     elseif mode == 'f' then --Function (one parameter but must return a value of any type)
         return function(i)
-            assert(i ~= nil, "For functions, a value must be supplied to the parameter")
-            assert(load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "Function", "t", {i=i})(), "Function must return a value")
-            return load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "Function", "t", {i=i})()
+            local variables = TokenizeAndExtractVariables(body)
+            if #variables == 1 then 
+                local assignmentTable = "{"
+                for _, v in pairs(variables) do
+                    assignmentTable = assignmentTable .. v .. "=%d"
+                end 
+                assignmentTable = assignmentTable .. "}"
+                assignmentTable = string.format(assignmentTable, i)
+                local t = load("return "..assignmentTable)()
+                assert(i ~= nil, "For functions, a value must be supplied to the parameter")
+                assert(load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "Function", "t", t)(), "Function must return a value")
+                return load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "Function", "t", t)()
+            else 
+                --Function must have exactly 1 parameter, not more and not less
+                error("You can only have up to 1 type of variables in this function. Not " .. #variables)
+            end 
         end 
     elseif mode == 'f2' then --BiFunction  (two parameters but must return a value of any type)
         return function(i, j)
-            assert(i ~= nil and j ~= nil, "For bifunction, a value must be supplied to each of the parameter")
-            assert(load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "BiFunction", "t", {i=i, j=j})(), "BiFunction must return a value")
-            return load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "BiFunction", "t", {i=i, j=j})()
+            local variables = TokenizeAndExtractVariables(body)
+            if #variables == 2 then
+                local assignmentTable = "{"
+                for _, v in pairs(variables) do
+                    assignmentTable = assignmentTable .. v .. "=" .. Operator.Ternary(_==#variables, "%d", "%d, ")
+                end
+                assignmentTable = assignmentTable .. "}"
+                assignmentTable = string.format(assignmentTable, j, i)
+                local t = load("return "..assignmentTable)()
+                assert(i ~= nil and j ~= nil, "For bifunction, a value must be supplied to each of the parameter")
+                assert(load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "BiFunction", "t", t)(), "BiFunction must return a value")
+                return load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "BiFunction", "t", t)()
+            else 
+                --BiPredicates must have exactly 2 parameters or argumentss 
+                error("You can only have up to 2 types of variables in this bifunction. Not " .. #variables)
+            end 
         end
     elseif mode == 'a' then  --Action (no parameters and cannot return a value)
         return function()
@@ -285,23 +349,42 @@ function ConstructFunction(mode, body)
         end 
     elseif mode == "p2" then  --BiPredicate (two parameters and must return a boolean)
         return function(i, j)
-            assert(i ~= nil and j ~= nil, "For BiPredicate, a value must be supplied to each of the parameter")
-            assert(type(load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "BiPredicate", "t", {i=i, j=j})())=="boolean", "BiPredicate must return a value of type boolean")
-            return load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "BiPredicate", "t", {i=i, j=j})()
+            local variables = TokenizeAndExtractVariables(body)
+            if #variables == 2 then
+                local assignmentTable = "{"
+                for _, v in pairs(variables) do
+                    assignmentTable = assignmentTable .. v .. "=" .. Operator.Ternary(_==#variables, "%d", "%d, ")
+                end
+                assignmentTable = assignmentTable .. "}"
+                assignmentTable = string.format(assignmentTable, j, i)
+                local t = load("return "..assignmentTable)()
+                assert(i ~= nil and j ~= nil, "For BiPredicate, a value must be supplied to each of the parameter")
+                assert(type(load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "BiPredicate", "t", t)())=="boolean", "BiPredicate must return a value of type boolean")
+                return load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "BiPredicate", "t", t)()
+            else 
+                --BiPredicates must have exactly 2 parameters or argumentss 
+                error("You can only have up to 2 types of variables in this bipredicate. Not " .. #variables)
+            end 
         end 
     elseif mode == "c2" then  --Comparator (two parameters and must return a whole number)
         return function(i, j)
-            assert(i ~= nil and j ~= nil, "For Comparator, a value must be supplied to each of the parameter")
-            assert(type(load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "Comparator", "t", {i=i, j=j})())=="number", "Comparator must return a value of type boolean")
-            local tempLoad = load(Operator.Ternary(string.find(body, "\n")~= nil and string.find(body, "return")~=nil, "", "return ")..body, "Comparator", "t", {i=i, j=j})()
-            return {
-                comparingAndThen = function(comparator)
-                    assert(comparator~=nil, "Comparator function cannot be nil over here")
-                    return function(i, j) 
-                        
-                    end 
+            local variables = TokenizeAndExtractVariables(body)
+            if #variables == 2 then 
+                local assignmentTable = "{"
+                for _, v in pairs(variables) do
+                    assignmentTable = assignmentTable .. v .. "=" .. Operator.Ternary(_==#variables, "%d", "%d, ")
                 end
-            }
+                assignmentTable = assignmentTable .. "}"
+                assignmentTable = string.format(assignmentTable, j, i)
+                local t = load("return "..assignmentTable)()
+                assert(i ~= nil and j ~= nil, "For Comparator, a value must be supplied to each of the parameter")
+                assert(type(load(Operator.Ternary(body:find("\n")~= nil and body:find("return")~=nil, "", "return ")..body, "Comparator", "t", t)())=="number", "Comparator must return a value of type boolean")
+                local tempLoad = load(Operator.Ternary(body:find("\n")~= nil and body:find("return")~=nil, "", "return ")..body, "Comparator", "t", t)()
+                return tempLoad
+            else 
+                --Comparators must have exactly 2 parameters or arguments
+                error("You can only have up to 2 types of variables in this comparator. Not " .. #variables)
+            end 
         end 
     end 
 end
