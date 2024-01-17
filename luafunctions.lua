@@ -233,9 +233,48 @@ local function TokenizeAndExtractVariables(multiline)
     return finalVariables
 end 
 
-local function FinalizeTable(t)
-  
-end 
+function FinalizeTable(t)
+    assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
+    local proxy = { }
+    --copy data from t into proxy table
+    for k, v in pairs(t) do
+        proxy[k] = v
+    end 
+    --prevent key insertions and array insertions, prevent overriding of functions in table class after proxy table is returned 
+    setmetatable(proxy, { 
+        --Create rules for the table
+        __index = function(self, k)
+            return self[k]
+        end,
+        __newindex = function(self, k, v)
+            error("Unsupported operation exception. Cannot update value")
+        end
+    })
+    setmetatable(table, {
+        __newindex = function(tab, k, v) --tab refers to t, not table.
+            if not tab[k] then 
+                rawset(tab, k, v)
+            end
+        end,
+        insert = function(tab, v)
+            if tab == t then 
+                error("Unsupported operation exception. Cannot update value")
+            end 
+        end,
+        remove = function(tab, v)
+            if tab == t then 
+                error("Unsupported operation exception. Cannot remove value from the table")
+            end 
+        end,
+        pack = function(tab, v)
+            if tab == t then 
+                error("Unsupported operation exception. Cannot transfer values from one table to another") 
+            end 
+        end,
+        __metatable = false
+    })
+    return proxy --Return proxy table instead of t
+end
 
 NumberFunction = {
   comparing = function(x, y)  --Returns 
@@ -388,3 +427,6 @@ function ConstructFunction(mode, body)
         end 
     end 
 end
+
+--keep track of overloaded function
+setmetatable({ }, { })
