@@ -466,6 +466,122 @@ function TypeOf(obj)
     end 
 end
 
+--Users can use this functions to construct classes 
+function ClassConstructor(nameOfClass) 
+    local LUAKEYWORDS = { 
+        "until", "repeat", "if", "then", "elseif", "else", "function", "end", "do", "for", "while", "local", "return", "true", "false", "and", "not", "or", "break", "nil"
+    }
+    local classConstructorInstance = { 
+        stringExpr = { },
+        parameters = { },
+        methods = { },
+        properties = { }
+    }
+    local function NumberOfKeyValuePairs(t)
+        assert(TypeOf(t)=="table", "This argument must be of type table, not "..TypeOf(t))
+        local tally = 0
+        for k, v in pairs(t) do 
+            if TypeOf(k) ~= "number" then 
+                tally = tally + 1
+            end 
+        end 
+        return tally
+    end 
+    classConstructorInstance["setParameter"] = function(self, name, defaultValue)
+        classConstructorInstance["parameters"][name] = defaultValue or "nil"
+        return classConstructorInstance
+    end
+    classConstructorInstance["setProperty"] = function(self, name, value) 
+        assert(TypeOf(name)=="string", "The name of the function must be a string")
+        classConstructorInstance["properties"][name] = value
+        return classConstructorInstance
+    end 
+    classConstructorInstance["setMethod"] = function(self, name, body, params)
+        params = params or { }
+        assert(TypeOf(name)=="string" and TypeOf(body)=="string", "Both parameters need to be a string")
+        local functionString = "function("
+        local currentIndex = 0
+        if (#params + NumberOfKeyValuePairs(params)) == 0 then 
+            functionString = functionString .. ")"
+        else 
+            for k, v in pairs(params) do 
+                if TypeOf(k) == "number" then
+                    assert(TypeOf(v)=="string", "The parameter must be a string")
+                    --Check if v is a reserved keyword
+                    if not table.contains(LUAKEYWORDS, v) then
+                        functionString = functionString .. v
+                        currentIndex = currentIndex + 1
+                        if currentIndex < (#params + NumberOfKeyValuePairs(params)) then 
+                            functionString = functionString .. ","
+                        else 
+                            functionString = functionString .. ")"
+                        end 
+                    else 
+                        error("Parameters shall not contain a lua keyword")
+                    end 
+                elseif TypeOf(k) == "string" then
+                    --Check if k is a reserved keyword.
+                    if not table.contains(LUAKEYWORDS, k) then
+                        functionString = functionString .. k
+                        currentIndex = currentIndex + 1
+                        if currentIndex < (#params + NumberOfKeyValuePairs(params)) then 
+                            functionString = functionString .. ","
+                        else 
+                            functionString = functionString .. ")"
+                        end
+                    else 
+                        error("Parameters shall not contain a lua keyword")
+                    end 
+                else 
+                    error("Parameters must be of type string")
+                end 
+            end 
+        end
+        --analyze body and check for lua syntax errors 
+        local a = TokenizeAndExtractVariables(body)
+        print(body)
+        
+        functionString = functionString .. "\n\t\tend"
+        classConstructorInstance["methods"][name] = functionString
+        return classConstructorInstance
+    end
+    classConstructorInstance["build"] = function(self)
+        --build the function afterwards
+        local functionString = string.format("function %s(", nameOfClass)
+        local currentIndex = 0
+        for var, val in pairs(classConstructorInstance["parameters"]) do 
+            functionString = functionString .. var
+            currentIndex = currentIndex + 1
+            if currentIndex < NumberOfKeyValuePairs(classConstructorInstance["parameters"]) then
+                functionString = functionString .. ","
+            else
+                functionString = functionString .. ")"
+            end
+        end 
+        local memberFunctionString = "local properties = {\n\t\t"
+        local methodPointerIndex = 0
+        for k, v in pairs(classConstructorInstance["methods"]) do 
+            memberFunctionString = memberFunctionString .. string.format("%s = %s", k, v)
+            methodPointerIndex = methodPointerIndex + 1
+            if methodPointerIndex < NumberOfKeyValuePairs(classConstructorInstance["methods"]) then
+                memberFunctionString = memberFunctionString .. ",\n"
+            else
+                memberFunctionString = memberFunctionString .. "\n"
+            end 
+        end 
+        memberFunctionString = memberFunctionString .. "\t}\n\t"
+        functionString = functionString .. "\n\t" .. memberFunctionString
+        --Add member properties into the function as well!
+        for var, val in pairs(classConstructorInstance["properties"]) do 
+            functionString = functionString .. string.format("properites.%s = %s\n", var, val)
+        end 
+        functionString = functionString .. "\n\treturn properties"
+        functionString = functionString .. "\nend"
+        return functionString
+    end 
+    AssignClassName(classConstructorInstance, nameOfClass)
+    return classConstructorInstance
+end 
 
 --keep track of overloaded function
 setmetatable({ }, { })
