@@ -428,5 +428,44 @@ function ConstructFunction(mode, body)
     end 
 end
 
+--Keep track of class types 
+function AssignClassName(t, name)
+    assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
+    --finalize the metatable so that the class 
+    local existingMetaTables = getmetatable(t)
+    local transfer = { }
+    if existingMetaTables then --Check for nil
+        for k, v in pairs(existingMetaTables) do 
+            transfer[k] = v
+        end 
+    end 
+    transfer["config"] = { 
+        __name__ = name
+    }
+    FinalizeTable(transfer["config"])
+    --make transfer[config] a readonly field and can only be read in the TypeOf method
+    local function MakeConstant(name, t)
+        
+    end 
+    MakeConstant('transfer["config"]', transfer["config"]) 
+    setmetatable(t, transfer)
+    return t
+end 
+
+--ready for typechecking
+function TypeOf(obj)
+    if type(obj) == "table" then
+        local types = getmetatable(obj)
+        if types then 
+            return types["config"].__name__
+        else 
+            return "table"
+        end 
+    else 
+        return type(obj)
+    end 
+end
+
+
 --keep track of overloaded function
 setmetatable({ }, { })
