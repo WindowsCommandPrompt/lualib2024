@@ -1,0 +1,16 @@
+--Saved as program.luapp
+
+--Save the assertions!
+
+:{Types: "number", "string", "boolean"}:
+function Recall(a, b, c)
+    return a, b, c
+end 
+
+:{Types: "number"}: 
+function Recall1(a)
+    return a
+end 
+
+local r1, r2, r3 = Recall(1, "", False)     --Ok
+local r4, r5, r6 = Recall("", "", False)   --Error (type mismatch)
