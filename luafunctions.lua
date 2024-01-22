@@ -64,6 +64,24 @@ string.get = function(sample, index)
     end
 end
 
+string.findAll = function(sample, str)
+    local matches = { }
+    local start, finish = 1, 1
+    repeat
+      start, finish = sample:find(str, finish)
+      if start then
+        local match = sample:sub(start, finish)
+        table.insert(matches, FinalizeTable({ 
+            match = match,
+            start = start,
+            finish = finish
+        }))
+        finish = finish + 1  
+      end
+    until not start
+    return matches
+end 
+
 table.contains = function(t, elem)
     for _, v in pairs(t) do
         if v == elem then return true end 
@@ -549,15 +567,19 @@ function ClassConstructor(nameOfClass)
         --build the function afterwards
         local functionString = string.format("function %s(", nameOfClass)
         local currentIndex = 0
-        for var, val in pairs(classConstructorInstance["parameters"]) do 
-            functionString = functionString .. var
-            currentIndex = currentIndex + 1
-            if currentIndex < NumberOfKeyValuePairs(classConstructorInstance["parameters"]) then
-                functionString = functionString .. ","
-            else
-                functionString = functionString .. ")"
-            end
-        end 
+        if NumberOfKeyValuePairs(classConstructorInstance["parameters"]) == 0 then 
+            functionString = functionString .. ')'
+        else
+            for var, val in pairs(classConstructorInstance["parameters"]) do 
+                functionString = functionString .. var
+                currentIndex = currentIndex + 1
+                if currentIndex < NumberOfKeyValuePairs(classConstructorInstance["parameters"]) then
+                    functionString = functionString .. ","
+                else
+                    functionString = functionString .. ")"
+                end
+            end 
+        end
         local memberFunctionString = "local properties = {\n\t\t"
         local methodPointerIndex = 0
         for k, v in pairs(classConstructorInstance["methods"]) do 
