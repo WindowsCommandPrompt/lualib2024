@@ -1,3 +1,5 @@
+# Type safety, type assignment and a better inheritance experience
+
 The purpose of the 'AssignClassName' function is to provide extensibility to lua tables, aid type checking at a later date. 
 
 ## Usage
@@ -36,3 +38,92 @@ ClassConstructor("Player")     -- Assign a name to this class.
 <br /> 
 <br /> 
 Builder patterns in Lua? Hmm....not quite for this programming language. Yes, even with the ClassConstructor, it still looks very ugly. You might be wondering, what else can we use to achieve the same goal but at the same time 
+
+The 
+
+Normally we do inheritance like this according to the standard Lua&copy; manual from the following link: https://www.lua.org/pil/16.2.html as follows:
+```lua
+--Base class named 'Account'
+Account = {balance = 0}
+    
+function Account:new (o)
+  o = o or {}
+  setmetatable(o, self)
+  self.__index = self
+  return o
+end
+
+function Account:deposit (v)
+  self.balance = self.balance + v
+end
+
+function Account:withdraw (v)
+  if v > self.balance then error"insufficient funds" end
+  self.balance = self.balance - v
+end
+-----------------------------------------------------------------------------------------
+--Derived class called SpecialAccount 
+local SpecialAccount = Account:new()
+--Overriding the 'withdraw' method in the Account class
+function SpecialAccount:withdraw (v)
+  if v - self.balance >= self:getLimit() then
+    error"insufficient funds"
+  end
+  self.balance = self.balance - v
+end
+
+--Still using the deposit method in the account class
+function SpecialAccount:deposit(v)
+    Account:deposit(v)   
+end
+```
+This way of writing code to perform inheritance in Lua&copy; is alright, however declaring a class looks extremely long here, and looks rather ugly once again. So many things to write! In Lua&copy;, we can possibly represent the concept of inheritance using <code>setmetatable</code>. Let's take a look at the following example: 
+```lua
+function A()
+    local instance = {
+        num = 12, 
+        getNum = function(self)
+            return self.num
+        end 
+    } 
+    setmetatable(instance, { 
+        __super__ = nil,   --Base classes do not have a supertype. Assign 'nil' to indicate that the class is the base. 
+        __name__ = debug.getinfo(1, "Sunfl").name   --type assignment
+    })
+    return instance
+end 
+
+function B()
+    local instance = {
+        num = 13,
+        getNum = function(self)
+            return getmetatable(self).__super__():getNum()
+        end
+    }
+    setmetatable(instance, {
+        __super__ = A,  --class B inherits from class A so we assign the __super__ property of class B's metatable to be class A
+        __name__ = debug.getinfo(1, "Sunfl").name  --type assignment
+    });
+    return instance
+end
+
+print(B():getNum())   --getNum() in class B now returns the num field in class A instead. 
+```
+We can 
+
+```txt
+ ___________________
+|        A          |
+|                   |    <---  Root class named 'A'
+|                   |
+|___________________|
+          △
+          |
+          |
+          |
+ ___________________
+|        B          |
+|                   |    <---  Derived class named 'B'
+|                   |
+|___________________|
+```
