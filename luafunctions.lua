@@ -89,46 +89,26 @@ table.contains = function(t, elem)
     return false
 end 
 
-function Array(...)
+function FixedArray(size, ...)
     local vararg = {...}
-    --if initLength is specified then this array is not growable
-    function Node(item, nextNode)
-        local component = {
-            item = item,
-            next = nextNode
-        }
-        return component
-    end 
-    --Start
-    local arrayInstance = {
-        head = nil,
-        add = function(elem)
-            if head == nil then
-                head = Node(elem, nil)
-            else
-                local currentNode = head
-                while currentNode.next ~= nil do
-                    currentNode = currentNode.next
-                end
-                currentNode.next = Node(elem, nil)
-            end
-            return arrayInstance
-        end,
-        pop = function()
-            if head ~= nil then
-                head = head.next
-            end 
-            return true
-        end,
-        isEmpty = function()
-            return not head
-        end, 
-        peek = function()
-            return head.item
-        end, 
-        indexOf = function(elem) 
+    assert(TypeOf(size)=="number" or TypeOf(size)=="nil", "The type of the first parameter must be of type number")
+    local function Append(item) --Inaccessible from outside of this class
+        local currentNode = arrayInstance.head
+        if #vararg > 0 then
             
-        end, 
+        end 
+        return arrayInstance
+    end
+    local arrayInstance = {  --fixed array instance length
+        head = nil, 
+        count = function()
+            local length = 0
+            if head ~= nil then 
+                local currentNode = head
+                
+            end 
+            return length
+        end,
         toString = function()
             local header = "["
             if head ~= nil then
@@ -141,8 +121,155 @@ function Array(...)
             end 
             header = header .. "]"
             return header
+        end
+    }
+    setmetatable(arrayInstance, { 
+        __index = function(self, k)
+            --I mean obviously you would be indexing the array using integers, right?
+            if TypeOf(k) ~= "string" then
+                assert(TypeOf(k)=="number", "You should be using integers to index an array, not: " .. TypeOf(k))
+                
+            end
+        end
+    })
+    AssignClassName(arrayInstance, debug.getinfo(1, "Sunfl").name)
+    return arrayInstance
+end
+
+function Array(...)
+    local vararg = {...}
+    --if initLength is specified then this array is not growable
+    function Node(item, nextNode)
+        local component = {
+            item = item,
+            next = nextNode
+        }
+        AssignClassName(component, debug.getinfo(1, "Sunfl").name)
+        return component
+    end 
+    --Start
+    local arrayInstance = {
+        head = nil,
+        count = function(self)  --Return the length of the array
+            local currentNode = head
+            local length = 0
+            while currentNode ~= nil do
+                length = length + 1
+                currentNode = currentNode.next 
+            end 
+            return length
+        end, 
+        add = function(self, elem)   --Add element into the add of the array
+            if head == nil then
+                head = Node(elem, nil)
+            else
+                local currentNode = head
+                while currentNode.next ~= nil do
+                    currentNode = currentNode.next
+                end
+                currentNode.next = Node(elem, nil)
+            end
+            return self
         end,
-        forEach = function(callbackfn)
+        pop = function(self)   --pop first element in the array
+            if head ~= nil then
+                head = head.next
+            end 
+            return self
+        end,
+        push = function(self, item)    --insert item at the start of the array
+            local newNode = Node(item, head.next)
+            head = newNode
+            return self
+        end,
+        remove = function(self, elem)  --pop last element in the array
+            if head ~= nil then
+                local currentNode = head
+                if elem then
+                    --Find the first instance of the element and then removes it
+                    if elem == currentNode.item then
+                        self.pop()
+                    else 
+                        while currentNode.next ~= nil and currentNode.next.item ~= elem do
+                            currentNode = currentNode.next
+                        end 
+                        --Reached the affected node named 'currentNode'
+                        if currentNode.next then
+                            --Just remove the last node as usual
+                            self.remove()
+                        else
+                            local auxNode = head
+                            while auxNode.next ~= currentNode do
+                                auxNode = auxNode.next
+                            end
+                            auxNode.next = currentNode.next
+                            --currentNode will be marked for deletion by the lua compiler
+                        end 
+                    end 
+                else 
+                    while currentNode.next ~= nil do 
+                        currentNode = currentNode.next
+                    end 
+                    --currentNode at the end of the linked list
+                    local auxNode = head
+                    while auxNode.next ~= currentNode do 
+                        auxNode = auxNode.next 
+                    end 
+                    auxNode.next = nil
+                end
+            end 
+            return self
+        end,
+        isEmpty = function(self)  --Check if the array is empty or not
+            return not head
+        end, 
+        peek = function(self)  --Return the first item in the array
+            return head.item
+        end, 
+        indexOf = function(self, elem)   --Return the index of the items in the list
+            local currentNode = head
+            local index = 0
+            if head.item == elem or head == nil then 
+                return index
+            else 
+                while currentNode.next ~= nil and currentNode.item ~= elem do
+                    currentNode = currentNode.next
+                    index = index + 1
+                end 
+                return index
+            end 
+        end, 
+        get = function(self, index)  --Get item at the specified index
+            if index >= 1 and index <= self.count() then 
+                local currentNode = head
+                if index == 1 then 
+                    return currentNode.item 
+                else 
+                    local currentIndex = 1
+                    while currentNode.next ~= nil and currentIndex < index do
+                        currentIndex = currentIndex + 1
+                        currentNode = currentNode.next 
+                    end 
+                    return currentNode.item
+                end 
+            else 
+                error("Index out of bounds")
+            end 
+        end,
+        toString = function()  --Return the array in a string representation
+            local header = "["
+            if head ~= nil then
+                local currentNode = head
+                header = header .. currentNode.item
+                while currentNode.next ~= nil do
+                    currentNode = currentNode.next
+                    header = header .. ", " .. currentNode.item
+                end 
+            end 
+            header = header .. "]"
+            return header
+        end,
+        forEach = function(callbackfn)   --Loops through each element in the list
             if head ~= nil then
                 local currentNode = head
                 callbackfn(currentNode.item)
@@ -151,18 +278,55 @@ function Array(...)
                     callbackfn(currentNode.item)
                 end 
             end 
+        end,
+        toFixedArray = function(self)
+            --Once the array is converted into a fixed array, the contents with the array cannot be modified anymore.
+            local fixedArrayCallString = "FixedArray(nil"
+            if head ~= nil then
+                local currentNode = head
+                fixedArrayCallString = fixedArrayCallString .. string.format(",%s", currentNode.item)
+                while currentNode.next ~= nil do
+                    currentNode = currentNode.next
+                    fixedArrayCallString = fixedArrayCallString .. string.format(",%s", currentNode.item)
+                end 
+                fixedArrayCallString = fixedArrayCallString .. ")"
+            else
+                fixedArrayCallString = fixedArrayCallString .. ")"
+            end 
+            return load(string.format("return %s", fixedArrayCallString))()
         end
     }
+    setmetatable(arrayInstance, { 
+        __tostring = function(self) 
+            assert(TypeOf(self)=="Array")
+            return self.toString()
+        end,
+        __eq = function(self, other)
+            assert(TypeOf(self) == "Array" and TypeOf(other) == "Array", "Both arguments need to be of type 'Array'")
+            if self:count() == other:count() then 
+                for i = 1, self:count() do
+                    print('current: ', self:get(i), 'other: ', other:get(i))
+                    if self:get(i) ~= other:get(i) then
+                        return false
+                    end 
+                end
+            else 
+                return false
+            end 
+            return true
+        end
+    })
     --Check for contents in vararg
     if #vararg > 0 then
         --Copy items from vararg table into array.
         for _, val in pairs(vararg) do
-            arrayInstance.add(val)
+            arrayInstance:add(val)
         end 
     end
+    --Assign a type name to the
+    AssignClassName(arrayInstance, debug.getinfo(1, "Sunfl").name)
     return arrayInstance
 end
-
 --Local functions
 local function TokenizeAndExtractVariables(multiline)
     local tokens = {}
