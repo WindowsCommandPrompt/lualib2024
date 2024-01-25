@@ -89,6 +89,29 @@ table.contains = function(t, elem)
     return false
 end 
 
+function StringExtension(str)
+    assert(TypeOf(str)=="string", "Only accepts string as the parameter, supplied parameter was: " .. TypeOf(str))
+    local instance = { 
+        sample = str
+    }
+    setmetatable(instance, { 
+        __mul = function(self, multiplier)
+            if TypeOf(multiplier)=="number" then
+                local template = ""
+                for i=1,multiplier do
+                    template = template .. self.sample
+                end
+                return template
+            end
+        end
+        __tostring = function(self)
+            return self.sample
+        end 
+    })
+    AssignClassName(instance, debug.getinfo(1, "Sunfl").name)
+    return instance
+end
+
 function FixedArray(size, ...)
     local vararg = {...}
     assert(TypeOf(size)=="number" or TypeOf(size)=="nil", "The type of the first parameter must be of type number")
@@ -139,7 +162,7 @@ end
 function Array(...)
     local vararg = {...}
     --if initLength is specified then this array is not growable
-    function Node(item, nextNode)
+    local function Node(item, nextNode)
         local component = {
             item = item,
             next = nextNode
@@ -294,6 +317,34 @@ function Array(...)
                 fixedArrayCallString = fixedArrayCallString .. ")"
             end 
             return load(string.format("return %s", fixedArrayCallString))()
+        end,
+        filter = function(self, predicate) 
+            
+            return self
+        end, 
+        map = function(self, mappingFunction)
+            
+            return self
+        end,
+        --use pcall for this function (recommended)
+        sum = function(self)
+            local total = 0
+            local currentNode = head
+            local currentIndex = 1
+            if TypeOf(currentNode.item)=="number" then
+                total = total + currentNode.item
+                currentIndex = currentIndex + 1
+            end
+            while currentNode.next ~= nil do
+                currentNode = currentNode.next
+                currentIndex = currentIndex + 1
+                if TypeOf(currentNode.item)=="number" then 
+                    total = total + currentNode.item
+                else 
+                    error("A non-number is detected in the array! Failed to perform sum. Erroneous item index: " .. i .. " which is of type: " .. TypeOf(currentNode.item))
+                end 
+            end 
+            return total
         end
     }
     setmetatable(arrayInstance, { 
@@ -327,6 +378,7 @@ function Array(...)
     AssignClassName(arrayInstance, debug.getinfo(1, "Sunfl").name)
     return arrayInstance
 end
+
 --Local functions
 local function TokenizeAndExtractVariables(multiline)
     local tokens = {}
@@ -611,7 +663,7 @@ function ConstructFunction(mode, body)
 end
 
 --Keep track of class types 
-function AssignClassName(t, name)
+function AssignClassName(t, name, super)
     assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
     --finalize the metatable so that the class 
     local existingMetaTables = getmetatable(t)
@@ -622,7 +674,8 @@ function AssignClassName(t, name)
         end 
     end 
     transfer["config"] = { 
-        __name__ = name
+        __name__ = name,
+        __super__ = super or table --All types can be traced back to the table.
     }
     FinalizeTable(transfer["config"])
     --make transfer[config] a readonly field and can only be read in the TypeOf method
