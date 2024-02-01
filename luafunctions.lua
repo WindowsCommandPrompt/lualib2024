@@ -1,6 +1,49 @@
 --Li Zhe Yun 2024
 
 --Function add ons
+function FinalizeTable(t)
+    assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
+    local proxy = { }
+    --copy data from t into proxy table
+    for k, v in pairs(t) do
+        proxy[k] = v
+    end 
+    --prevent key insertions and array insertions, prevent overriding of functions in table class after proxy table is returned 
+    setmetatable(proxy, { 
+        --Create rules for the table
+        __index = function(self, k)
+            return self[k]
+        end,
+        __newindex = function(self, k, v)
+            error("Unsupported operation exception. Cannot update value")
+        end
+    })
+    setmetatable(table, {
+        __newindex = function(tab, k, v) --tab refers to t, not table.
+            if not tab[k] then 
+                rawset(tab, k, v)
+            end
+        end,
+        insert = function(tab, v)
+            if tab == t then 
+                error("Unsupported operation exception. Cannot update value")
+            end 
+        end,
+        remove = function(tab, v)
+            if tab == t then 
+                error("Unsupported operation exception. Cannot remove value from the table")
+            end 
+        end,
+        pack = function(tab, v)
+            if tab == t then 
+                error("Unsupported operation exception. Cannot transfer values from one table to another") 
+            end 
+        end,
+        __metatable = false
+    })
+    return proxy --Return proxy table instead of t
+end
+
 string.contains = function(sample, str)
     --returns boolean
     for i = 0, string.len(sample) - 1 do
@@ -89,6 +132,45 @@ table.contains = function(t, elem)
     return false
 end 
 
+--Keep track of class types 
+function AssignClassName(t, name, super)
+    assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
+    --finalize the metatable so that the class 
+    local existingMetaTables = getmetatable(t)
+    local transfer = { }
+    if existingMetaTables then --Check for nil
+        for k, v in pairs(existingMetaTables) do 
+            transfer[k] = v
+        end 
+    end 
+    transfer["config"] = { 
+        __name__ = name,
+        __super__ = super or table --All types can be traced back to the table.
+    }
+    FinalizeTable(transfer["config"])
+    --make transfer[config] a readonly field and can only be read in the TypeOf method
+    local function MakeConstant(name, t)
+        
+    end 
+    MakeConstant('transfer["config"]', transfer["config"]) 
+    setmetatable(t, transfer)
+    return t
+end 
+
+--ready for typechecking
+function TypeOf(obj)
+    if type(obj) == "table" then
+        local types = getmetatable(obj)
+        if types then 
+            return types["config"].__name__
+        else 
+            return "table"
+        end 
+    else 
+        return type(obj)
+    end 
+end
+
 function StringExtension(str)
     assert(TypeOf(str)=="string", "Only accepts string as the parameter, supplied parameter was: " .. TypeOf(str))
     local instance = { 
@@ -103,7 +185,7 @@ function StringExtension(str)
                 end
                 return template
             end
-        end
+        end,
         __tostring = function(self)
             return self.sample
         end 
@@ -174,7 +256,7 @@ function Array(...)
     local arrayInstance = {
         head = nil,
         count = function(self)  --Return the length of the array
-            local currentNode = head
+            local currentNode = self.head
             local length = 0
             while currentNode ~= nil do
                 length = length + 1
@@ -183,10 +265,10 @@ function Array(...)
             return length
         end, 
         add = function(self, elem)   --Add element into the add of the array
-            if head == nil then
-                head = Node(elem, nil)
+            if self.head == nil then
+                self.head = Node(elem, nil)
             else
-                local currentNode = head
+                local currentNode = self.head
                 while currentNode.next ~= nil do
                     currentNode = currentNode.next
                 end
@@ -195,19 +277,19 @@ function Array(...)
             return self
         end,
         pop = function(self)   --pop first element in the array
-            if head ~= nil then
-                head = head.next
+            if self.head ~= nil then
+                self.head = self.head.next
             end 
             return self
         end,
         push = function(self, item)    --insert item at the start of the array
             local newNode = Node(item, head.next)
-            head = newNode
+            self.head = newNode
             return self
         end,
         remove = function(self, elem)  --pop last element in the array
-            if head ~= nil then
-                local currentNode = head
+            if self.head ~= nil then
+                local currentNode = self.head
                 if elem then
                     --Find the first instance of the element and then removes it
                     if elem == currentNode.item then
@@ -234,7 +316,7 @@ function Array(...)
                         currentNode = currentNode.next
                     end 
                     --currentNode at the end of the linked list
-                    local auxNode = head
+                    local auxNode = self.head
                     while auxNode.next ~= currentNode do 
                         auxNode = auxNode.next 
                     end 
@@ -244,15 +326,15 @@ function Array(...)
             return self
         end,
         isEmpty = function(self)  --Check if the array is empty or not
-            return not head
+            return not self.head
         end, 
         peek = function(self)  --Return the first item in the array
-            return head.item
+            return self.head.item
         end, 
         indexOf = function(self, elem)   --Return the index of the items in the list
-            local currentNode = head
+            local currentNode = self.head
             local index = 0
-            if head.item == elem or head == nil then 
+            if self.head.item == elem or self.head == nil then 
                 return index
             else 
                 while currentNode.next ~= nil and currentNode.item ~= elem do
@@ -263,8 +345,8 @@ function Array(...)
             end 
         end, 
         get = function(self, index)  --Get item at the specified index
-            if index >= 1 and index <= self.count() then 
-                local currentNode = head
+            if index >= 1 and index <= self:count() then 
+                local currentNode = self.head
                 if index == 1 then 
                     return currentNode.item 
                 else 
@@ -279,22 +361,9 @@ function Array(...)
                 error("Index out of bounds")
             end 
         end,
-        toString = function()  --Return the array in a string representation
-            local header = "["
-            if head ~= nil then
-                local currentNode = head
-                header = header .. currentNode.item
-                while currentNode.next ~= nil do
-                    currentNode = currentNode.next
-                    header = header .. ", " .. currentNode.item
-                end 
-            end 
-            header = header .. "]"
-            return header
-        end,
         forEach = function(callbackfn)   --Loops through each element in the list
-            if head ~= nil then
-                local currentNode = head
+            if self.head ~= nil then
+                local currentNode = self.head
                 callbackfn(currentNode.item)
                 while currentNode.next ~= nil do
                     currentNode = currentNode.next
@@ -302,11 +371,65 @@ function Array(...)
                 end 
             end 
         end,
+        toString = function(self)  --Return the array in a string representation
+            local function HandleNestedArraysOrTable(self, item)
+                local starting = ""
+                if TypeOf(item) == "Array" then
+                    local isAllNonArrayOrTable = true
+                    for i=1, item:count() do 
+                        if TypeOf(item:get(i))=="Array" or TypeOf(item:get(i))=="table" then
+                            isAllNonArrayOrTable = false 
+                            break
+                        end
+                    end
+                    if isAllNonArrayOrTable then 
+                        starting = starting .. item:toString()
+                    else 
+                        starting = starting .. '['
+                        --So long as not table append it to starting
+                        for i=1, item:count() do 
+                            if TypeOf(item:get(i))=="Array" or TypeOf(item:get(i))=="table" then
+                                starting = starting .. HandleNestedArraysOrTable(self, item:get(i))
+                            else
+                                starting = starting .. item:get(i)
+                            end 
+                            --Determine is comma is needed 
+                            if i ~= item:count() then 
+                                starting = starting .. ','
+                            end 
+                        end 
+                        starting = starting .. ']'
+                    end 
+                elseif TypeOf(item) == "table" then 
+                
+                end 
+                return starting
+            end
+            local header = "["
+            if self.head ~= nil then
+                local currentNode = self.head
+                if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item) == "Array" then 
+                    header = header .. HandleNestedArraysOrTable(self, currentNode.item) 
+                else 
+                    header = header .. currentNode.item
+                end 
+                while currentNode.next ~= nil do
+                    currentNode = currentNode.next
+                    if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item) == "Array" then 
+                        header = header .. ", " .. HandleNestedArraysOrTable(self, currentNode.item) 
+                    else
+                        header = header .. ", " .. currentNode.item
+                    end 
+                end 
+            end 
+            header = header .. "]"
+            return header
+        end,
         toFixedArray = function(self)
             --Once the array is converted into a fixed array, the contents with the array cannot be modified anymore.
             local fixedArrayCallString = "FixedArray(nil"
-            if head ~= nil then
-                local currentNode = head
+            if self.head ~= nil then
+                local currentNode = self.head
                 fixedArrayCallString = fixedArrayCallString .. string.format(",%s", currentNode.item)
                 while currentNode.next ~= nil do
                     currentNode = currentNode.next
@@ -319,17 +442,17 @@ function Array(...)
             return load(string.format("return %s", fixedArrayCallString))()
         end,
         filter = function(self, predicate) 
-            
+            --To be implemented 
             return self
         end, 
         map = function(self, mappingFunction)
-            
+            --To be implemented
             return self
         end,
         --use pcall for this function (recommended)
         sum = function(self)
             local total = 0
-            local currentNode = head
+            local currentNode = self.head
             local currentIndex = 1
             if TypeOf(currentNode.item)=="number" then
                 total = total + currentNode.item
@@ -345,12 +468,24 @@ function Array(...)
                 end 
             end 
             return total
-        end
+        end,
+        min = function(self)
+            local minimum = 0
+            local currentNode = self.head
+            local currentIndex = 1
+            if TypeOf(currentNode.item)=="number" then
+                minimum = currentNode.item
+                currentIndex = currentIndex + 1
+            end
+            while currentNode.next ~= nil do
+                
+            end
+        end 
     }
     setmetatable(arrayInstance, { 
         __tostring = function(self) 
             assert(TypeOf(self)=="Array")
-            return self.toString()
+            return self:toString()
         end,
         __eq = function(self, other)
             assert(TypeOf(self) == "Array" and TypeOf(other) == "Array", "Both arguments need to be of type 'Array'")
@@ -466,49 +601,6 @@ local function TokenizeAndExtractVariables(multiline)
     end
     return finalVariables
 end 
-
-function FinalizeTable(t)
-    assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
-    local proxy = { }
-    --copy data from t into proxy table
-    for k, v in pairs(t) do
-        proxy[k] = v
-    end 
-    --prevent key insertions and array insertions, prevent overriding of functions in table class after proxy table is returned 
-    setmetatable(proxy, { 
-        --Create rules for the table
-        __index = function(self, k)
-            return self[k]
-        end,
-        __newindex = function(self, k, v)
-            error("Unsupported operation exception. Cannot update value")
-        end
-    })
-    setmetatable(table, {
-        __newindex = function(tab, k, v) --tab refers to t, not table.
-            if not tab[k] then 
-                rawset(tab, k, v)
-            end
-        end,
-        insert = function(tab, v)
-            if tab == t then 
-                error("Unsupported operation exception. Cannot update value")
-            end 
-        end,
-        remove = function(tab, v)
-            if tab == t then 
-                error("Unsupported operation exception. Cannot remove value from the table")
-            end 
-        end,
-        pack = function(tab, v)
-            if tab == t then 
-                error("Unsupported operation exception. Cannot transfer values from one table to another") 
-            end 
-        end,
-        __metatable = false
-    })
-    return proxy --Return proxy table instead of t
-end
 
 NumberFunction = {
   comparing = function(x, y)  --Returns 
@@ -659,45 +751,6 @@ function ConstructFunction(mode, body)
                 error("You can only have up to 2 types of variables in this comparator. Not " .. #variables)
             end 
         end 
-    end 
-end
-
---Keep track of class types 
-function AssignClassName(t, name, super)
-    assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
-    --finalize the metatable so that the class 
-    local existingMetaTables = getmetatable(t)
-    local transfer = { }
-    if existingMetaTables then --Check for nil
-        for k, v in pairs(existingMetaTables) do 
-            transfer[k] = v
-        end 
-    end 
-    transfer["config"] = { 
-        __name__ = name,
-        __super__ = super or table --All types can be traced back to the table.
-    }
-    FinalizeTable(transfer["config"])
-    --make transfer[config] a readonly field and can only be read in the TypeOf method
-    local function MakeConstant(name, t)
-        
-    end 
-    MakeConstant('transfer["config"]', transfer["config"]) 
-    setmetatable(t, transfer)
-    return t
-end 
-
---ready for typechecking
-function TypeOf(obj)
-    if type(obj) == "table" then
-        local types = getmetatable(obj)
-        if types then 
-            return types["config"].__name__
-        else 
-            return "table"
-        end 
-    else 
-        return type(obj)
     end 
 end
 
