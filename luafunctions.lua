@@ -145,7 +145,7 @@ function AssignClassName(t, name, super)
     end 
     transfer["config"] = { 
         __name__ = name,
-        __super__ = super or table --All types can be traced back to the table.
+        __super__ = load(string.format("return %s", super))() or table --All types can be traced back to the table.
     }
     FinalizeTable(transfer["config"])
     --make transfer[config] a readonly field and can only be read in the TypeOf method
@@ -361,7 +361,7 @@ function Array(...)
                 error("Index out of bounds")
             end 
         end,
-        forEach = function(callbackfn)   --Loops through each element in the list
+        forEach = function(self, callbackfn)   --Loops through each element in the list
             if self.head ~= nil then
                 local currentNode = self.head
                 callbackfn(currentNode.item)
@@ -484,7 +484,6 @@ function Array(...)
     }
     setmetatable(arrayInstance, { 
         __tostring = function(self) 
-            assert(TypeOf(self)=="Array")
             return self:toString()
         end,
         __eq = function(self, other)
@@ -512,6 +511,136 @@ function Array(...)
     --Assign a type name to the
     AssignClassName(arrayInstance, debug.getinfo(1, "Sunfl").name)
     return arrayInstance
+end
+
+function DoublyLinkedList(...)
+    local function Node(item, prev, next)
+        local instance = { 
+            item = item,
+            prev = prev,
+            next = next
+        }
+        AssignClassName(instance, debug.getinfo(1, "Sunfl"), nil)
+        return instance
+    end 
+    local instance = { 
+        head = nil, 
+        tail = nil,
+        isEmpty = function(self)
+            return self.head == nil and self.tail == nil
+        end,
+        count = function(self)
+            return getmetatable(self)["config"].__super__().count(self)
+        end,
+        add = function(self, item)
+            if self:isEmpty() then
+                local newNode = Node(item, nil, nil)
+                self.head = newNode 
+                self.tail = newNode
+            else
+                local currentNode = self.head
+                if self.head == currentNode and self.tail == currentNode then 
+                    local newNode = Node(item, currentNode, nil)
+                    self.tail = newNode
+                    currentNode.next = newNode
+                else
+                    while currentNode.next ~= nil do
+                        currentNode = currentNode.next
+                    end 
+                    local newNode = Node(item, currentNode, nil)
+                    self.tail = newNode
+                    currentNode.next = newNode
+                end
+            end
+            return self
+        end,
+        reverse = function(self)
+            if not self:isEmpty() then
+                local currentNode = self.head
+                local tempPrev = nil
+        
+                while currentNode do
+                    local tempNext = currentNode.next
+                    currentNode.next = tempPrev
+                    currentNode.prev = tempNext
+                    tempPrev = currentNode
+                    currentNode = tempNext
+                end
+                
+                local tempHead = self.head
+                self.head = self.tail
+                self.tail = tempHead
+            end
+            return self
+        end, 
+        get = function(self, index)  --Get item at the specified index
+            return getmetatable(self)["config"].__super__().get(self, index)
+        end,
+        forEach = function(self, callbackfn)   --Loops through each element in the list
+            getmetatable(self)["config"].__super__().forEach(self, callbackfn)
+        end,
+        toString = function(self)
+            local function HandleNestedArraysOrTable(self, item)
+                local starting = ""
+                if TypeOf(item) == "DoublyLinkedList" then
+                    local isAllNonArrayOrTable = true
+                    for i=1, item:count() do 
+                        if TypeOf(item:get(i))=="Array" or TypeOf(item:get(i))=="table" then
+                            isAllNonArrayOrTable = false 
+                            break
+                        end
+                    end
+                    if isAllNonArrayOrTable then 
+                        starting = starting .. item:toString()
+                    else 
+                        starting = starting .. '['
+                        --So long as not table append it to starting
+                        for i=1, item:count() do 
+                            if TypeOf(item:get(i))=="DoublyLinkedList" or TypeOf(item:get(i))=="table" then
+                                starting = starting .. HandleNestedArraysOrTable(self, item:get(i))
+                            else
+                                starting = starting .. item:get(i)
+                            end 
+                            --Determine is comma is needed 
+                            if i ~= item:count() then 
+                                starting = starting .. ','
+                            end 
+                        end 
+                        starting = starting .. ']'
+                    end 
+                elseif TypeOf(item) == "table" then 
+                
+                end 
+                return starting
+            end
+            local header = "["
+            if self.head ~= nil then
+                local currentNode = self.head
+                if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item) == "Array" then 
+                    header = header .. HandleNestedArraysOrTable(self, currentNode.item) 
+                else 
+                    header = header .. currentNode.item
+                end 
+                while currentNode.next ~= nil do
+                    currentNode = currentNode.next
+                    if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item) == "Array" then 
+                        header = header .. ", " .. HandleNestedArraysOrTable(self, currentNode.item) 
+                    else
+                        header = header .. ", " .. currentNode.item
+                    end 
+                end 
+            end 
+            header = header .. "]"
+            return header
+        end
+    }
+    setmetatable(instance, { 
+        __tostring = function(self)
+            return self:toString()
+        end
+    })
+    AssignClassName(instance, debug.getinfo(1, "Sunfl"), "Array")
+    return instance
 end
 
 --Local functions
