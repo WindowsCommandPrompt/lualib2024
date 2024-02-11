@@ -98,7 +98,7 @@ string.locate = function(sample, str)
 end  
 
 string.get = function(sample, index)
-    if index >= string.len(sample) or index < -string.len(sample) then
+    if index > string.len(sample) or index < -string.len(sample) then
         error("Index out of bounds for string length: " .. string.len(sample))
     elseif index >= -string.len(sample) and index <= -1 then
         return string.sub(sample, index, index)
@@ -640,6 +640,35 @@ function DoublyLinkedList(...)
         end
     })
     AssignClassName(instance, debug.getinfo(1, "Sunfl"), "Array")
+    return instance
+end
+
+function Map()
+
+end
+
+--Wrapper class for table
+function Table(t)
+    local instance = { 
+        array = Array(),
+        map = Map(),
+        add = function(self, item)
+            --add into the array part
+            array:add(item)
+            return self
+        end, 
+        remove = function(self, item)
+            --remove from the array part
+        end,
+        toString = function(self)
+            
+        end
+    }
+    setmetatable(instance, { 
+        __tostring = function(self)
+        end
+    })
+    AssignClassName(instance, debug.getinfo(1, "Sunfl"), nil)
     return instance
 end
 
