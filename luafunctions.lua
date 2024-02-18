@@ -723,29 +723,38 @@ function Map()
 end
 
 --Wrapper class for table
-function Table(t)
+function Table(t) 
+    local data = t
     local instance = { 
-        array = Array(),
-        map = Map(),
-        add = function(self, item)
-            --add into the array part
-            array:add(item)
-            return self
-        end, 
-        remove = function(self, item)
-            --remove from the array part
+        getData = function(self)
+            return data
         end,
         toString = function(self)
             
         end
     }
-    setmetatable(instance, { 
-        __tostring = function(self)
+    local function setData(self, newData)
+        data = newData
+    end
+    setmetatable(instance, {
+        __add = function(self, other)
+            local current = self:getData()
+            local other = other:getData()
+            --perform a merge of both tables
+            for i=1,#other do
+                table.insert(current, other[i])
+            end 
+            for k, v in pairs(other) do
+                if TypeOf(k) ~= "number" then
+                    rawset(current, k, v)
+                end
+            end
+            setData(self, current)
+            return self
         end
     })
-    AssignClassName(instance, debug.getinfo(1, "Sunfl"), nil)
     return instance
-end
+end 
 
 --Local functions
 local function TokenizeAndExtractVariables(multiline)
