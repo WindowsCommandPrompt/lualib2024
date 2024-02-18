@@ -109,8 +109,6 @@ end
 
 print(B():getNum())   --getNum() in class B now returns the num field in class A instead. 
 ```
-We can 
-
 ```txt
  ___________________
 |        A          |
@@ -126,4 +124,33 @@ We can
 |                   |    <---  Derived class named 'B'
 |                   |
 |___________________|
+```
+
+The purpose of the 'Table' class is to provide extensibility to the 'table' type directly. You can now concatenate two tables directly. 
+
+## Usage
+```lua
+local t1 = {1,2,3;x=12,y=13}
+local t2 = {4,5,6;x=13,y=14}
+local combined = Table(t1) + Table(t2)
+for k, v in pairs(combined:getData()) do
+    print(k, v)
+end
+```
+Do note that the map part of the first table will be overwritten with data from the second table. 
+
+One such application of table merging is for merging of two separate metatables. 
+```lua
+local m1 = { }
+setmetatable(m1, {
+    __tostring = function(self)
+        return ""
+    end 
+})
+
+setmetatable(m1, Table(getmetatable(m1)) + Table({
+    __eq = function(self, other)
+        return false
+    end
+}))
 ```
