@@ -526,9 +526,6 @@ function Array(...)
         __tostring = function(self) 
             return self:toString()
         end,
-        __index = function(self, k)
-            error("Symbol not found: " .. tostring(k))
-        end,
         __static = FinalizeTable({   -- public static Array fromTable(table t)    DAB
             fromTable = function(t)
                 assert(TypeOf(t)=="table") 
@@ -557,7 +554,7 @@ function Array(...)
             return true
         end
     })
-    setmetatable(getmetatable(instance).__static, { 
+    setmetatable(getmetatable(arrayInstance).__static, { 
         __index = function(self, k)
             error("Symbol not found: " .. tostring(k))
         end
@@ -1127,5 +1124,6 @@ return {
     FinalizeTable = FinalizeTable,
     TypeOf = TypeOf,
     AssignClassName = AssignClassName,
-    StringExtension = StringExtension
+    StringExtension = StringExtension,
+    _ = _
 }
