@@ -38,14 +38,54 @@ function FinalizeTable(t)
             if tab == t then 
                 error("Unsupported operation exception. Cannot transfer values from one table to another") 
             end 
-        end,
-        __metatable = false
+        end
     })
     return proxy --Return proxy table instead of t
 end
 
+--Keep track of class types 
+function AssignClassName(t, name, super)
+    assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
+    --finalize the metatable so that the class 
+    local existingMetaTables = getmetatable(t)
+    local transfer = { }
+    if existingMetaTables then --Check for nil
+        for k, v in pairs(existingMetaTables) do 
+            transfer[k] = v
+        end 
+    end 
+    transfer["config"] = { 
+        __name__ = name,
+        __super__ = load(string.format("return %s", super))() or table --All types can be traced back to the table.
+    }
+    FinalizeTable(transfer["config"])
+    --make transfer[config] a readonly field and can only be read in the TypeOf method
+    local function MakeConstant(name, t)
+        
+    end 
+    MakeConstant('transfer["config"]', transfer["config"]) 
+    setmetatable(t, transfer)
+    return t
+end 
+
+--ready for typechecking
+function TypeOf(obj)
+    if type(obj) == "table" then
+        local types = getmetatable(obj)
+        if types then 
+            return types["config"].__name__
+        else 
+            return "table"
+        end 
+    else 
+        return type(obj)
+    end 
+end
+
 string.contains = function(sample, str)
     --returns boolean
+    assert(TypeOf(sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(sample))
+    assert(TypeOf(str)=="string", "Search string must be of type 'string', not " .. TypeOf(str))
     for i = 0, string.len(sample) - 1 do
         if string.get(str, 0) == string.get(sample, i) and string.sub(sample, i+1, i + string.len(str)) == str then
             return true
@@ -54,7 +94,13 @@ string.contains = function(sample, str)
     return false
 end
 
-string.containsOneOf = function(sample, list)
+string.containsOneOf = function(sample, list)     
+    --[[ 
+        Can be used in the following example to parse the following syntax
+        'if a == { 'a' or 'b' } then'
+    ]]
+    assert(TypeOf(sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(sample))
+    assert(TypeOf(list)=="Array" or TypeOf(list) == "table", "Sample string must be of type 'table' or 'Array', not " .. TypeOf(list))
     if type(list) == "table" then 
         --Do table iteration
         for _, v in pairs(list) do 
@@ -125,52 +171,34 @@ string.findAll = function(sample, str)
     return matches
 end 
 
-table.contains = function(t, elem)
-    for _, v in pairs(t) do
-        if v == elem then return true end 
+string.split = function(sample, regex)
+    local portions = { }
+    local allMatches = sample:findAll(regex)
+    local marker = 1
+    for i=1,#allMatches+1 do
+        if i == 1 then
+            table.insert(portions, sample:sub(1, allMatches[i].start-1))
+            marker = allMatches[i]
+        elseif i > 1 and i < #allMatches+1 then
+            table.insert(portions, sample:sub(marker.finish+1, allMatches[i].start-1))
+            marker = allMatches[i]
+        else 
+           table.insert(portions, sample:sub(marker.finish+1, #sample-1))
+        end
+    end
+    return portions
+end
+
+table.containsKey = function(t, elem)
+    for k, _ in pairs(t) do
+        if k == elem then return true end 
     end 
     return false
 end 
 
---Keep track of class types 
-function AssignClassName(t, name, super)
-    assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
-    --finalize the metatable so that the class 
-    local existingMetaTables = getmetatable(t)
-    local transfer = { }
-    if existingMetaTables then --Check for nil
-        for k, v in pairs(existingMetaTables) do 
-            transfer[k] = v
-        end 
-    end 
-    transfer["config"] = { 
-        __name__ = name,
-        __super__ = load(string.format("return %s", super))() or table --All types can be traced back to the table.
-    }
-    FinalizeTable(transfer["config"])
-    --make transfer[config] a readonly field and can only be read in the TypeOf method
-    local function MakeConstant(name, t)
-        
-    end 
-    MakeConstant('transfer["config"]', transfer["config"]) 
-    setmetatable(t, transfer)
-    return t
-end 
-
---ready for typechecking
-function TypeOf(obj)
-    if type(obj) == "table" then
-        local types = getmetatable(obj)
-        if types then 
-            return types["config"].__name__
-        else 
-            return "table"
-        end 
-    else 
-        return type(obj)
-    end 
-end
-
+--[[ TODO: 
+string.contains, string.containsOneOf, string.locate, string.get, string.findAll and string.split will be moved into StringExtension. 
+]] 
 function StringExtension(str)
     assert(TypeOf(str)=="string", "Only accepts string as the parameter, supplied parameter was: " .. TypeOf(str))
     local instance = { 
@@ -190,7 +218,7 @@ function StringExtension(str)
             return self.sample
         end 
     })
-    AssignClassName(instance, debug.getinfo(1, "Sunfl").name)
+    AssignClassName(instance, debug.getinfo(1, "Sunfl").name, "string") --inherits from 'string'
     return instance
 end
 
@@ -442,12 +470,22 @@ function Array(...)
             return load(string.format("return %s", fixedArrayCallString))()
         end,
         filter = function(self, predicate) 
-            --To be implemented 
-            return self
+            local newArray = Array() --to be copied to
+            self:forEach(function(item) 
+                assert(TypeOf(predicate(item))=="boolean", "Predicates must return a boolean")
+                if predicate(item) then
+                    newArray:add(item)
+                end 
+            end)
+            return newArray
         end, 
         map = function(self, mappingFunction)
-            --To be implemented
-            return self
+            local newArray = Array() --to be mapped to
+            self:forEach(function(item) 
+                assert(TypeOf(mappingFunction(item))~="nil", "Must return a type")
+                newArray:add(mappingFunction(item))
+            end)
+            return newArray
         end,
         --use pcall for this function (recommended)
         sum = function(self)
