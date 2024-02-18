@@ -1119,3 +1119,13 @@ end
 
 --keep track of overloaded function
 setmetatable({ }, { })
+
+--exports
+return { 
+    Array = Array,
+    Table = Table,
+    FinalizeTable = FinalizeTable,
+    TypeOf = TypeOf,
+    AssignClassName = AssignClassName,
+    StringExtension = StringExtension
+}
