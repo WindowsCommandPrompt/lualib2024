@@ -1,5 +1,7 @@
 --Li Zhe Yun 2024
 
+local _ = _G
+
 --Function add ons
 function FinalizeTable(t)
     assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
@@ -12,7 +14,7 @@ function FinalizeTable(t)
     setmetatable(proxy, { 
         --Create rules for the table
         __index = function(self, k)
-            return self[k]
+            return rawget(self, k)
         end,
         __newindex = function(self, k, v)
             error("Unsupported operation exception. Cannot update value")
@@ -524,6 +526,22 @@ function Array(...)
         __tostring = function(self) 
             return self:toString()
         end,
+        __index = function(self, k)
+            error("Symbol not found: " .. tostring(k))
+        end,
+        __static = FinalizeTable({   -- public static Array fromTable(table t)    DAB
+            fromTable = function(t)
+                assert(TypeOf(t)=="table") 
+                --Only take array part
+                local newArray = Array()
+                for k, v in pairs(t) do
+                    if TypeOf(k)=="number" then
+                        newArray:add(v)
+                    end
+                end
+                return newArray
+            end
+        }),
         __eq = function(self, other)
             assert(TypeOf(self) == "Array" and TypeOf(other) == "Array", "Both arguments need to be of type 'Array'")
             if self:count() == other:count() then 
@@ -539,6 +557,11 @@ function Array(...)
             return true
         end
     })
+    setmetatable(getmetatable(instance).__static, { 
+        __index = function(self, k)
+            error("Symbol not found: " .. tostring(k))
+        end
+    })
     --Check for contents in vararg
     if #vararg > 0 then
         --Copy items from vararg table into array.
@@ -550,6 +573,20 @@ function Array(...)
     AssignClassName(arrayInstance, debug.getinfo(1, "Sunfl").name)
     return arrayInstance
 end
+
+--include the Array class into _G
+_[TypeOf(Array())] = Array
+
+--make static methods callable without calling Array function
+setmetatable(_, { 
+    __call = function(self, k)
+        assert(getmetatable(_G[k]()).__static, "NO STATIC METHODS FOUND!")
+        return getmetatable(_G[k]()).__static
+    end
+})
+
+-- print(_("Array").fromTable({ }))    no error 
+-- print(Array().fromTable({ })) error
 
 function DoublyLinkedList(...)
     local function Node(item, prev, next)
