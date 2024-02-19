@@ -1,6 +1,11 @@
  local moduleCore = require("luafunctions")
  
  local arrInit = moduleCore.Array()
+
+ -- You can also use 
+ -- local typeChecker = moduleCore.TypeOf
+ -- local arrStatic = moduleCore._(TypeOf(arrInit))
+
  local arrStatic = moduleCore._("Array")
  
  local FILE = io.open("main.luapp", "r")
