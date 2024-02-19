@@ -163,12 +163,12 @@ string.locate = function(sample, str)
 end  
 
 string.get = function(sample, index)
-    if index > string.len(sample) or index < -string.len(sample) then
+    if index > string.len(sample) or index < -string.len(sample) or index == 0 then
         error("Index out of bounds for string length: " .. string.len(sample))
     elseif index >= -string.len(sample) and index <= -1 then
         return string.sub(sample, index, index)
     else
-        return string.sub(sample, index + 1, index + 1)
+        return string.sub(sample, index-1, index)
     end
 end
 
@@ -215,161 +215,103 @@ table.containsKey = function(t, elem)
     return false
 end 
 
---[[ TODO: 
-string.contains, string.containsOneOf, string.locate, string.get, string.findAll and string.split will be moved into StringExtension. 
-]] 
-function StringExtension(str)
-    assert(TypeOf(str)=="string", "Only accepts string as the parameter, supplied parameter was: " .. TypeOf(str))
-    local instance = { 
-        sample = str,
-        split = function(sample, regex)
-            local portions = { }
-            local allMatches = sample:findAll(regex)
-            local marker = 1
-            for i=1,#allMatches+1 do
-                if i == 1 then
-                    table.insert(portions, sample:sub(1, allMatches[i].start-1))
-                    marker = allMatches[i]
-                elseif i > 1 and i < #allMatches+1 then
-                    table.insert(portions, sample:sub(marker.finish+1, allMatches[i].start-1))
-                    marker = allMatches[i]
-                else 
-                   table.insert(portions, sample:sub(marker.finish+1, #sample-1))
-                end
-            end
-            return portions
-        end,
-        findAll = function(sample, str)
-            local matches = { }
-            local start, finish = 1, 1
-            repeat
-              start, finish = sample:find(str, finish)
-              if start then
-                local match = sample:sub(start, finish)
-                table.insert(matches, FinalizeTable({ 
-                    match = match,
-                    start = start,
-                    finish = finish
-                }))
-                finish = finish + 1  
-              end
-            until not start
-            return matches
-        end,
-        get = function(sample, index)
-            if index > string.len(sample) or index < -string.len(sample) then
-                error("Index out of bounds for string length: " .. string.len(sample))
-            elseif index >= -string.len(sample) and index <= -1 then
-                return string.sub(sample, index, index)
-            else
-                return string.sub(sample, index + 1, index + 1)
-            end
-        end,
-        locate = function(sample, str)
-             local start = -1
-                local j = 0
-                for i=0, sample:len()-1 do
-                    if start == -1 and sample:get(i) == str:get(j) then 
-                        --set anchor
-                        start = i
-                        if j == str:len() - 1 then 
-                            return {
-                                begin = start,
-                                finish = i
-                            } 
-                        end
-                        j = j + 1
-                    elseif start ~= -1 and str:get(j) == sample:get(i) then 
-                        if j == str:len() - 1 then 
-                            return {
-                                begin = start,
-                                finish = i
-                            } 
-                        end 
-                        j = j + 1
-                    else
-                        start = -1
-                    end 
-                end 
-                return nil
-        end,
-        containsOneOf = function(sample, list)     
-            --[[ 
-                Can be used in the following example to parse the following syntax
-                'if a == { 'a' or 'b' } then'
-            ]]
-            assert(TypeOf(sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(sample))
-            assert(TypeOf(list)=="Array" or TypeOf(list) == "table", "Sample string must be of type 'table' or 'Array', not " .. TypeOf(list))
-            if type(list) == "table" then 
-                --Do table iteration
-                for _, v in pairs(list) do 
-                    if sample:contains(v) then return true end 
-                end 
-            else 
-                list.forEach(function(i) 
-                    if sample:contains(i) then return true end
-                end) 
-            end 
-            return false 
-        end,
-        contains = function(sample, str)
-            --returns boolean
-            assert(TypeOf(sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(sample))
-            assert(TypeOf(str)=="string", "Search string must be of type 'string', not " .. TypeOf(str))
-            for i = 0, string.len(sample) - 1 do
-                if string.get(str, 0) == string.get(sample, i) and string.sub(sample, i+1, i + string.len(str)) == str then
-                    return true
-                end
-            end
-            return false
-        end
-    }
-    setmetatable(instance, { 
-        __mul = function(self, multiplier)
-            if TypeOf(multiplier)=="number" then
-                local template = ""
-                for i=1,multiplier do
-                    template = template .. self.sample
-                end
-                return template
-            end
-        end,
-        __tostring = function(self)
-            return self.sample
-        end 
-    })
-    AssignClassName(instance, debug.getinfo(1, "Sunfl").name, "string") --inherits from 'string'
-    return instance
-end
-
 function FixedArray(size, ...)
     local vararg = {...}
     assert(TypeOf(size)=="number" or TypeOf(size)=="nil", "The type of the first parameter must be of type number")
-    local function Append(item) --Inaccessible from outside of this class
-        local currentNode = arrayInstance.head
-        if #vararg > 0 then
-            
-        end 
-        return arrayInstance
-    end
+    local function Node(item, nextNode)
+        local component = {
+            item = item,
+            next = nextNode
+        }
+        AssignClassName(component, debug.getinfo(1, "Sunfl").name)
+        return component
+    end 
     local arrayInstance = {  --fixed array instance length
         head = nil, 
-        count = function()
+        count = function(self)
             local length = 0
-            if head ~= nil then 
-                local currentNode = head
-                
+            if self.head ~= nil then 
+                local currentNode = self.head
+                length = length + 1
+                while currentNode.next ~= nil do 
+                    currentNode = currentNode.next
+                    length = length + 1
+                end
             end 
             return length
         end,
-        toString = function()
+        set = function(self, index, value)
+            local maximumIndex = self:count()
+            if index >= 1 and index <= maximumIndex then
+                local currentNode = self.head
+                if index == 1 then 
+                    currentNode.item = value
+                else 
+                    local pointer = 1
+                    while currentNode.next ~= nil and pointer < index do
+                        currentNode = currentNode.next 
+                        pointer = pointer + 1
+                        if pointer == index then 
+                            break
+                        end
+                    end
+                    --arrived at the target node
+                    currentNode.item = value
+                end
+                return self
+            else 
+                error(string.format("Index out of bounds for fixed array length %d with given index %d", maximumIndex, index))
+            end
+        end,
+        toString = function(self)
+            local function HandleNestedArraysOrTable(self, item)
+                local starting = ""
+                if TypeOf(item) == "Array" then
+                    local isAllNonArrayOrTable = true
+                    for i=1, item:count() do 
+                        if TypeOf(item:get(i))=="FixedArray" or TypeOf(item:get(i))=="table" then
+                            isAllNonArrayOrTable = false 
+                            break
+                        end
+                    end
+                    if isAllNonArrayOrTable then 
+                        starting = starting .. item:toString()
+                    else 
+                        starting = starting .. '['
+                        --So long as not table append it to starting
+                        for i=1, item:count() do 
+                            if TypeOf(item:get(i))=="FixedArray" or TypeOf(item:get(i))=="table" then
+                                starting = starting .. HandleNestedArraysOrTable(self, item:get(i))
+                            else
+                                starting = starting .. item:get(i)
+                            end 
+                            --Determine is comma is needed 
+                            if i ~= item:count() then 
+                                starting = starting .. ','
+                            end 
+                        end 
+                        starting = starting .. ']'
+                    end 
+                elseif TypeOf(item) == "table" then 
+                
+                end 
+                return starting
+            end
             local header = "["
-            if head ~= nil then
-                local currentNode = head
-                header = header .. currentNode.item
+            if self.head ~= nil then
+                local currentNode = self.head
+                if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item) == "FixedArray" then 
+                    header = header .. HandleNestedArraysOrTable(self, currentNode.item) 
+                else 
+                    header = header .. currentNode.item
+                end 
                 while currentNode.next ~= nil do
                     currentNode = currentNode.next
-                    header = header .. ", " .. currentNode.item
+                    if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item) == "FixedArray" then 
+                        header = header .. ", " .. HandleNestedArraysOrTable(self, currentNode.item) 
+                    else
+                        header = header .. ", " .. currentNode.item
+                    end 
                 end 
             end 
             header = header .. "]"
@@ -383,10 +325,189 @@ function FixedArray(size, ...)
                 assert(TypeOf(k)=="number", "You should be using integers to index an array, not: " .. TypeOf(k))
                 
             end
+        end,
+        __tostring = function(self)
+            return self:toString()
         end
     })
+    local function Initialize(length)
+        local expr = 'Node(0'
+        local times = 1
+        while times < length do
+            expr = expr .. ',' .. 'Node(0'
+            times = times + 1
+        end
+        expr = expr .. ',' .. 'nil'
+        local formatStringForClosingBrackets = "%s"
+        local params = "')'"
+        times = 1
+        while times < length do 
+            formatStringForClosingBrackets = formatStringForClosingBrackets .. "%s"
+            params = params .. ',' .. "')'"
+            times = times + 1
+        end
+        expr = expr .. load("return "..string.format("string.format(\"%s\", %s)", formatStringForClosingBrackets, params))()
+        arrayInstance.head = load([[ 
+            local function Node(item, nextNode)
+                local component = {
+                    item = item,
+                    next = nextNode
+                }
+                AssignClassName(component, debug.getinfo(1, "Sunfl").name)
+                return component
+            end
+            return 
+        ]]..expr)()
+    end
+    --perform initialization of FixedArray if size is specified
+    if size then
+        Initialize(size)
+    end 
     AssignClassName(arrayInstance, debug.getinfo(1, "Sunfl").name)
     return arrayInstance
+end
+
+--[[ TODO: 
+string.contains, string.containsOneOf, string.locate, string.get, string.findAll and string.split will be moved into StringExtension. 
+]] 
+function StringExtension(str)
+    assert(TypeOf(str)=="string", "Only accepts string as the parameter, supplied parameter was: " .. TypeOf(str))
+    local instance = { 
+        sample = str,
+        split = function(self, regex)
+            local portions = { }
+            local allMatches = self.sample:findAll(regex)
+            local marker = 1
+            for i=1,#allMatches+1 do
+                if i == 1 then
+                    table.insert(portions, self.sample:sub(1, allMatches[i].start-1))
+                    marker = allMatches[i]
+                elseif i > 1 and i < #allMatches+1 then
+                    table.insert(portions, self.sample:sub(marker.finish+1, allMatches[i].start-1))
+                    marker = allMatches[i]
+                else 
+                   table.insert(portions, self.sample:sub(marker.finish+1, #sample-1))
+                end
+            end
+            return portions
+        end,
+        findAll = function(self, str)
+            local matches = { }
+            local start, finish = 1, 1
+            repeat
+              start, finish = self.sample:find(str, finish)
+              if start then
+                local match = self.sample:sub(start, finish)
+                table.insert(matches, FinalizeTable({ 
+                    match = match,
+                    start = start,
+                    finish = finish
+                }))
+                finish = finish + 1  
+              end
+            until not start
+            return matches
+        end,
+        get = function(sample, index)
+            if index > string.len(sample) or index < -string.len(sample) or index == 0 then
+                error("Index out of bounds for string length: " .. string.len(sample))
+            elseif index >= -string.len(sample) and index <= -1 then
+                return string.sub(sample, index, index)
+            else
+                return string.sub(sample, index-1, index)
+            end
+        end,
+        locate = function(self, str)
+             local start = -1
+                local j = 0
+                for i=0, self.sample:len()-1 do
+                    if start == -1 and self.sample:get(i) == str:get(j) then 
+                        --set anchor
+                        start = i
+                        if j == str:len() - 1 then 
+                            return {
+                                begin = start,
+                                finish = i
+                            } 
+                        end
+                        j = j + 1
+                    elseif start ~= -1 and str:get(j) == self.sample:get(i) then 
+                        if j == str:len() - 1 then 
+                            return {
+                                begin = start,
+                                finish = i
+                            } 
+                        end 
+                        j = j + 1
+                    else
+                        start = -1
+                    end 
+                end 
+                return nil
+        end,
+        containsOneOf = function(self, list)     
+            --[[ 
+                Can be used in the following example to parse the following syntax
+                'if a == { 'a' or 'b' } then'
+            ]]
+            assert(TypeOf(self.sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(self.sample))
+            assert(TypeOf(list)=="Array" or TypeOf(list) == "table", "Sample string must be of type 'table' or 'Array', not " .. TypeOf(list))
+            if type(list) == "table" then 
+                --Do table iteration
+                for _, v in pairs(list) do 
+                    if self:contains(v) then return true end 
+                end 
+            else 
+                list.forEach(function(i) 
+                    if self:contains(i) then return true end
+                end) 
+            end 
+            return false 
+        end,
+        contains = function(self, str)
+            --returns boolean
+            assert(TypeOf(self.sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(self.sample))
+            assert(TypeOf(str)=="string", "Search string must be of type 'string', not " .. TypeOf(str))
+            for i = 0, string.len(self.sample) - 1 do
+                if string.get(str, 0) == string.get(self.sample, i) and string.sub(self.sample, i+1, i + string.len(str)) == str then
+                    return true
+                end
+            end
+            return false
+        end,
+        length = function(self)
+            return self.sample:len()   --string.len(self.sample)
+        end, 
+        toCharArray = function(self) --Convert string to a character array
+            --Returns a fixed array
+            local fixedArray = FixedArray(self:length())
+            --copy character from string at index position into the fixedArray
+            for i=1,fixedArray:count() do
+                fixedArray:set(i, self:get(i))
+            end
+            return fixedArray
+        end
+    }
+    setmetatable(instance, { 
+        __mul = function(self, multiplier)
+            if TypeOf(multiplier)=="number" then
+                local template = ""
+                for i=1,multiplier do
+                    template = template .. self.sample
+                end
+                return template
+            end
+        end,
+        __concat = function(self, str)  --lua makes it impossible for u to append 'nil' to a string. Now u can
+            getmetatable(self)["config"].__super__()
+                
+        end,
+        __tostring = function(self)
+            return self.sample
+        end 
+    })
+    AssignClassName(instance, debug.getinfo(1, "Sunfl").name, "string") --inherits from 'string'
+    return instance
 end
 
 function Array(...)
