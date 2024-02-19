@@ -101,6 +101,10 @@ function TypeOf(obj)
     end 
 end
 
+function super(cls)  --Create reference to superclass
+    return getmetatable(cls)["config"].__super__()
+end
+
 string.contains = function(sample, str)
     --returns boolean
     assert(TypeOf(sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(sample))
@@ -885,10 +889,10 @@ function DoublyLinkedList(...)
             return self
         end, 
         get = function(self, index)  --Get item at the specified index
-            return getmetatable(self)["config"].__super__().get(self, index)
+            return super(self).get(self, index)
         end,
         forEach = function(self, callbackfn)   --Loops through each element in the list
-            getmetatable(self)["config"].__super__().forEach(self, callbackfn)
+            super(self).forEach(self, callbackfn)
         end,
         toString = function(self)
             local function HandleNestedArraysOrTable(self, item)
