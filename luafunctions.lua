@@ -2,6 +2,9 @@
 
 local _ = _G
 
+--Keep track of inheritance lists (Attach a doubly linked list to it
+_["inherit"] = nil
+
 --Function add ons
 function FinalizeTable(t)
     assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
@@ -65,6 +68,20 @@ function AssignClassName(t, name, super)
     local function MakeConstant(name, t)
         
     end 
+    -- if super is not nil
+    if super then 
+        for rootClass, inheritanceList in pairs(_["inherit"]) do
+            for i=1, rootClass:count() do
+                --go down the list of classes 
+                if _["inherit"][rootClass][i] == super then
+                    --add the subclass to the list
+                    _["inherit"][rootClass]:add(name)
+                end
+            end
+        end
+    else
+        _["inherit"][name] = DoublyLinkedList()
+    end
     MakeConstant('transfer["config"]', transfer["config"]) 
     setmetatable(t, transfer)
     return t
@@ -204,7 +221,108 @@ string.contains, string.containsOneOf, string.locate, string.get, string.findAll
 function StringExtension(str)
     assert(TypeOf(str)=="string", "Only accepts string as the parameter, supplied parameter was: " .. TypeOf(str))
     local instance = { 
-        sample = str
+        sample = str,
+        split = function(sample, regex)
+            local portions = { }
+            local allMatches = sample:findAll(regex)
+            local marker = 1
+            for i=1,#allMatches+1 do
+                if i == 1 then
+                    table.insert(portions, sample:sub(1, allMatches[i].start-1))
+                    marker = allMatches[i]
+                elseif i > 1 and i < #allMatches+1 then
+                    table.insert(portions, sample:sub(marker.finish+1, allMatches[i].start-1))
+                    marker = allMatches[i]
+                else 
+                   table.insert(portions, sample:sub(marker.finish+1, #sample-1))
+                end
+            end
+            return portions
+        end,
+        findAll = function(sample, str)
+            local matches = { }
+            local start, finish = 1, 1
+            repeat
+              start, finish = sample:find(str, finish)
+              if start then
+                local match = sample:sub(start, finish)
+                table.insert(matches, FinalizeTable({ 
+                    match = match,
+                    start = start,
+                    finish = finish
+                }))
+                finish = finish + 1  
+              end
+            until not start
+            return matches
+        end,
+        get = function(sample, index)
+            if index > string.len(sample) or index < -string.len(sample) then
+                error("Index out of bounds for string length: " .. string.len(sample))
+            elseif index >= -string.len(sample) and index <= -1 then
+                return string.sub(sample, index, index)
+            else
+                return string.sub(sample, index + 1, index + 1)
+            end
+        end,
+        locate = function(sample, str)
+             local start = -1
+                local j = 0
+                for i=0, sample:len()-1 do
+                    if start == -1 and sample:get(i) == str:get(j) then 
+                        --set anchor
+                        start = i
+                        if j == str:len() - 1 then 
+                            return {
+                                begin = start,
+                                finish = i
+                            } 
+                        end
+                        j = j + 1
+                    elseif start ~= -1 and str:get(j) == sample:get(i) then 
+                        if j == str:len() - 1 then 
+                            return {
+                                begin = start,
+                                finish = i
+                            } 
+                        end 
+                        j = j + 1
+                    else
+                        start = -1
+                    end 
+                end 
+                return nil
+        end,
+        containsOneOf = function(sample, list)     
+            --[[ 
+                Can be used in the following example to parse the following syntax
+                'if a == { 'a' or 'b' } then'
+            ]]
+            assert(TypeOf(sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(sample))
+            assert(TypeOf(list)=="Array" or TypeOf(list) == "table", "Sample string must be of type 'table' or 'Array', not " .. TypeOf(list))
+            if type(list) == "table" then 
+                --Do table iteration
+                for _, v in pairs(list) do 
+                    if sample:contains(v) then return true end 
+                end 
+            else 
+                list.forEach(function(i) 
+                    if sample:contains(i) then return true end
+                end) 
+            end 
+            return false 
+        end,
+        contains = function(sample, str)
+            --returns boolean
+            assert(TypeOf(sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(sample))
+            assert(TypeOf(str)=="string", "Search string must be of type 'string', not " .. TypeOf(str))
+            for i = 0, string.len(sample) - 1 do
+                if string.get(str, 0) == string.get(sample, i) and string.sub(sample, i+1, i + string.len(str)) == str then
+                    return true
+                end
+            end
+            return false
+        end
     }
     setmetatable(instance, { 
         __mul = function(self, multiplier)
