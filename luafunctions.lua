@@ -48,9 +48,34 @@ function FinalizeTable(t)
     return proxy --Return proxy table instead of t
 end
 
+--Generate full class name 
+--[[ 
+    function A()
+        function B() 
+        end 
+    end
+    TypeOf(B()) should give A.B
+]]
+function GenerateClassNameComplete()
+    local index = 1
+    while true do
+        if not debug.getinfo(index, "n").name  then break end
+        index = index + 1
+    end
+    local constructName = ""
+    for i = index-1, 3, -1 do
+        constructName = constructName .. '.' .. debug.getinfo(i, 'n').name
+    end
+    local fullName = constructName:sub(2, #constructName)
+    return fullName
+end
+
 --Keep track of class types 
 function AssignClassName(t, name, super)
     assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
+    assert(type(name)=="string" or type(name)=="nil", "The type of the class must be expressed in the form of a string")
+    name = name or GenerateClassNameComplete()
+    assert(type(super)=="string" or type(super)=="nil", "The type of the superclass must be expressed in the form of a string")
     --finalize the metatable so that the class 
     local existingMetaTables = getmetatable(t)
     local transfer = { }
@@ -99,28 +124,6 @@ function TypeOf(obj)
     else 
         return type(obj)
     end 
-end
-
---Generate full class name 
---[[ 
-    function A()
-        function B() 
-        end 
-    end
-    TypeOf(B()) should give A.B
-]]
-function GenerateClassNameComplete()
-    local index = 1
-    while true do
-        if not debug.getinfo(index, "n").name  then break end
-        index = index + 1
-    end
-    local constructName = ""
-    for i = index-1, 2, -1 do
-        constructName = constructName .. '.' .. debug.getinfo(i, 'n').name
-    end
-    local fullName = constructName:sub(2, #constructName)
-    return fullName
 end
 
 function super(cls)  --Create reference to superclass
@@ -411,7 +414,7 @@ function FixedArray(size, ...)
     if size then
         Initialize(size)
     end 
-    AssignClassName(arrayInstance, debug.getinfo(1, "Sunfl").name)
+    AssignClassName(arrayInstance)
     return arrayInstance
 end
 
@@ -534,6 +537,24 @@ function StringExtension(str)
                 fixedArray:set(i, self:get(i))
             end
             return fixedArray
+        end,
+        sub = function(self, start, stop)   --inherit from string class
+            return super(self).sub(self.sample, start, stop)
+        end,
+        lower = function(self)
+            return super(self).lower(self.sample)
+        end,
+        upper = function(self)
+            return super(self).upper(self.sample)
+        end,
+        reverse = function(self)
+            return super(self).reverse(self.sample)
+        end,
+        find = function(self, target, start, finish)
+            return super(self).find(self.sample, target, start, finish)
+        end,
+        gsub = function(self, target, replace)
+            return super(self).gsub(self.sample, target, replace)
         end
     }
     setmetatable(instance, { 
@@ -546,15 +567,22 @@ function StringExtension(str)
                 return template
             end
         end,
+        __static = FinalizeTable({ --All static methods for StringExtension class
+            format = function(placeHolder, ...)
+
+                --static reference to superclass
+                --return super(StringExtension(str)).format(placeHolder, ...)
+            end
+        }),
         __concat = function(self, str)  --lua makes it impossible for u to append 'nil' to a string. Now u can
             getmetatable(self)["config"].__super__()
                 
         end,
         __tostring = function(self)
             return self.sample
-        end 
+        end
     })
-    AssignClassName(instance, debug.getinfo(1, "Sunfl").name, "string") --inherits from 'string'
+    AssignClassName(instance, GenerateClassNameComplete(), "string") --inherits from 'string'
     return instance
 end
 
@@ -854,7 +882,7 @@ function Array(...)
         end 
     end
     --Assign a type name to the
-    AssignClassName(arrayInstance, debug.getinfo(1, "Sunfl").name)
+    AssignClassName(arrayInstance)
     return arrayInstance
 end
 
@@ -998,7 +1026,7 @@ function DoublyLinkedList(...)
             return self:toString()
         end
     })
-    AssignClassName(instance, debug.getinfo(1, "Sunfl"), "Array")
+    AssignClassName(instance, GenerateClassNameComplete(), "Array")
     return instance
 end
 
@@ -1037,6 +1065,7 @@ function Table(t)
             return self
         end
     })
+    AssignClassName(instance, GenerateClassNameComplete(), "table")
     return instance
 end 
 
