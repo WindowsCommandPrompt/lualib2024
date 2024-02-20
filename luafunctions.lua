@@ -101,9 +101,53 @@ function TypeOf(obj)
     end 
 end
 
+--Generate full class name 
+--[[ 
+    function A()
+        function B() 
+        end 
+    end
+    TypeOf(B()) should give A.B
+]]
+function GenerateClassNameComplete()
+    local index = 1
+    while true do
+        if not debug.getinfo(index, "n").name  then break end
+        index = index + 1
+    end
+    local constructName = ""
+    for i = index-1, 2, -1 do
+        constructName = constructName .. '.' .. debug.getinfo(i, 'n').name
+    end
+    local fullName = constructName:sub(2, #constructName)
+    return fullName
+end
+
 function super(cls)  --Create reference to superclass
     return getmetatable(cls)["config"].__super__()
 end
+
+--=================================================================================
+--Ensure that debug module is NOT nil when this file is executed
+assert(debug, "Cannot run this file because the debug module has been set to 'nil'")
+--Ensure that string module is NOT nil when this file is executed
+assert(string, "Cannot run this file because the string module has been set to 'nil'")
+--Ensure that io module is NOT nil when this file is executed
+assert(io, "Cannot run this file because the io module has been set to 'nil'")
+--Ensure that os module is NOT nil when this file is executed
+assert(os, "Cannot run this file because the os module has been set to 'nil'")
+--Ensure that table module is NOT nil when this file is executed
+assert(table, "Cannot run this file because the table module has been set to 'nil'")
+
+--Assert all built-in modules in lua are of type 'table' 
+assert(TypeOf(debug)=="table", "Cannot run this file because the debug module is no longer a table")
+assert(TypeOf(string)=="table", "Cannot run this file because the string module is no longer a table")
+assert(TypeOf(table)=="table", "Cannot run this file because the table module is no longer a table")
+assert(TypeOf(io)=="table", "Cannot run this file because the table io is no longer a table")
+assert(TypeOf(os)=="table", "Cannot run this file because the table os is no longer a table")
+
+--Check if contents of built-in modules have been modified
+--=================================================================================
 
 string.contains = function(sample, str)
     --returns boolean
