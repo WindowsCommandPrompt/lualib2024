@@ -109,6 +109,8 @@ end
 
 print(B():getNum())   --getNum() in class B now returns the num field in class A instead. 
 ```
+
+Inheritance diagram: 
 ```txt
  ___________________
 |        A          |
@@ -126,6 +128,16 @@ print(B():getNum())   --getNum() in class B now returns the num field in class A
 |___________________|
 ```
 
+# Introduction of the 'super' function
+This could effectively replace the need of having to write <code> getmetatable(t)["config"].&lowbar;&lowbar;super&lowbar;&lowbar;() </code> over and over again if there is a need to access methods from base class
+
+```lua
+function super(t)
+    return getmetatable(t)["config"].__super__()
+end
+```
+
+# Introduction of the Table wrapper class
 The purpose of the 'Table' class is to provide extensibility to the 'table' type directly. You can now concatenate two tables directly. 
 
 ## Usage
