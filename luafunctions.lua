@@ -2,8 +2,11 @@
 
 local _ = _G
 
---Keep track of inheritance lists (Attach a doubly linked list to it
+--Keep track of inheritance lists (Attach a doubly linked list to it)
 _["inherit"] = nil
+
+--Keep track of type names
+_["types"] = { }
 
 --Function add ons
 function FinalizeTable(t)
@@ -112,7 +115,30 @@ function AssignClassName(t, name, super)
     return t
 end 
 
+setmetatable(_["types"], { 
+    __index = function(self, k)
+        if type(k) == "function" then
+            print(debug.getinfo(k, "n").name)
+            rawset(_["types"], k, FinalizeTable({ 
+                __name__ = "<anonymous function>"
+            }))
+        else 
+            --_["types"] does not accept non-function values as key in this context. 
+            error("Sorry, only functions allowed in this context")
+        end
+    end
+})
+
 --ready for typechecking
+--[[ 
+    function A()
+        local instance = { }
+        AssignClassName(instance)
+        return instance
+    end 
+
+    TypeOf(A)   --> should give u 'A' just by passing the function object instead of calling the function.
+]] 
 function TypeOf(obj)
     if type(obj) == "table" then
         local types = getmetatable(obj)
@@ -121,6 +147,20 @@ function TypeOf(obj)
         else 
             return "table"
         end 
+    elseif type(obj) == "function" then    
+        local allTypes = _["types"]
+        for k, v in pairs(allTypes) do
+            if k == obj then 
+                return v.__name__
+            end
+        end
+        local target = _["types"][obj]
+        --repeat for loop
+        for k, v in pairs(allTypes) do
+            if k == obj then 
+                return v.__name__
+            end
+        end
     else 
         return type(obj)
     end 
