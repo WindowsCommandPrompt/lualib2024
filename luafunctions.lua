@@ -756,6 +756,20 @@ function Array(...)
                 end 
             end 
         end,
+        contains = function(self, item)
+            --Checks for array membership returns true or false
+            local currentNode = self.head
+            if currentNode.item == item then 
+                return true
+            end
+            while currentNode.next ~= nil do
+                currentNode = currentNode.next
+                if currentNode.item == item then
+                    return true 
+                end
+            end
+            return false
+        end,
         toString = function(self)  --Return the array in a string representation
             local function HandleNestedArraysOrTable(self, item)
                 local starting = ""
@@ -776,7 +790,11 @@ function Array(...)
                             if TypeOf(item:get(i))=="Array" or TypeOf(item:get(i))=="table" then
                                 starting = starting .. HandleNestedArraysOrTable(self, item:get(i))
                             else
-                                starting = starting .. item:get(i)
+                                if Array("number", "string", "boolean", "function", "thread", "userdata"):contains(TypeOf(item:get(i))) then
+                                    starting = starting .. item:get(i)
+                                else 
+                                    starting = starting .. "nil"
+                                end
                             end 
                             --Determine is comma is needed 
                             if i ~= item:count() then 
@@ -796,14 +814,22 @@ function Array(...)
                 if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item) == "Array" then 
                     header = header .. HandleNestedArraysOrTable(self, currentNode.item) 
                 else 
-                    header = header .. currentNode.item
+                    if Array("number", "string", "boolean", "function", "thread", "userdata"):contains(TypeOf(currentNode.item)) then
+                        header = header .. ", " .. currentNode.item
+                    else
+                        header = header .. ", " .. "nil"
+                    end
                 end 
                 while currentNode.next ~= nil do
                     currentNode = currentNode.next
                     if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item) == "Array" then 
                         header = header .. ", " .. HandleNestedArraysOrTable(self, currentNode.item) 
                     else
-                        header = header .. ", " .. currentNode.item
+                        if Array("number", "string", "boolean", "function", "thread", "userdata"):contains(TypeOf(currentNode.item)) then
+                            header = header .. ", " .. currentNode.item
+                        else
+                            header = header .. ", " .. "nil"
+                        end
                     end 
                 end 
             end 
