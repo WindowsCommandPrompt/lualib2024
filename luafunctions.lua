@@ -314,7 +314,7 @@ function FixedArray(size, ...)
             item = item,
             next = nextNode
         }
-        AssignClassName(component, debug.getinfo(1, "Sunfl").name)
+        AssignClassName(component)
         return component
     end 
     local arrayInstance = {  --fixed array instance length
@@ -444,7 +444,7 @@ function FixedArray(size, ...)
                     item = item,
                     next = nextNode
                 }
-                AssignClassName(component, debug.getinfo(1, "Sunfl").name)
+                AssignClassName(component)
                 return component
             end
             return 
@@ -634,7 +634,7 @@ function Array(...)
             item = item,
             next = nextNode
         }
-        AssignClassName(component, debug.getinfo(1, "Sunfl").name)
+        AssignClassName(component)
         return component
     end 
     --Start
