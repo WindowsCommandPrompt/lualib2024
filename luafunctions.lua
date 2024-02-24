@@ -627,7 +627,6 @@ function StringExtension(str)
 end
 
 function Array(...)
-    local vararg = {...}
     --if initLength is specified then this array is not growable
     local function Node(item, nextNode)
         local component = {
@@ -940,12 +939,15 @@ function Array(...)
             error("Symbol not found: " .. tostring(k))
         end
     })
+    local varargLength = select("#", ...)
     --Check for contents in vararg
     if #vararg > 0 then
         --Copy items from vararg table into array.
-        for _, val in pairs(vararg) do
-            arrayInstance:add(val)
-        end 
+        local newArray = Array()
+        for i=1, varargLength do
+            newArray:add(tostring(select(i, ...)))
+        end
+        return newArray
     end
     --Assign a type name to the
     AssignClassName(arrayInstance)
