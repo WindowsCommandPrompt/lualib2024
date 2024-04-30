@@ -166,32 +166,6 @@ function TypeOf(obj)
     end 
 end
 
-function super(cls)  --Create reference to superclass
-    return getmetatable(cls)["config"].__super__()
-end
-
---=================================================================================
---Ensure that debug module is NOT nil when this file is executed
-assert(debug, "Cannot run this file because the debug module has been set to 'nil'")
---Ensure that string module is NOT nil when this file is executed
-assert(string, "Cannot run this file because the string module has been set to 'nil'")
---Ensure that io module is NOT nil when this file is executed
-assert(io, "Cannot run this file because the io module has been set to 'nil'")
---Ensure that os module is NOT nil when this file is executed
-assert(os, "Cannot run this file because the os module has been set to 'nil'")
---Ensure that table module is NOT nil when this file is executed
-assert(table, "Cannot run this file because the table module has been set to 'nil'")
-
---Assert all built-in modules in lua are of type 'table' 
-assert(TypeOf(debug)=="table", "Cannot run this file because the debug module is no longer a table")
-assert(TypeOf(string)=="table", "Cannot run this file because the string module is no longer a table")
-assert(TypeOf(table)=="table", "Cannot run this file because the table module is no longer a table")
-assert(TypeOf(io)=="table", "Cannot run this file because the table io is no longer a table")
-assert(TypeOf(os)=="table", "Cannot run this file because the table os is no longer a table")
-
---Check if contents of built-in modules have been modified
---=================================================================================
-
 string.contains = function(sample, str)
     --returns boolean
     assert(TypeOf(sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(sample))
@@ -305,6 +279,81 @@ table.containsKey = function(t, elem)
     end 
     return false
 end 
+
+table.contains = function(t, elem)
+  for k, v in pairs(t) do 
+    if v == elem then return true end 
+  end 
+  return false
+end
+
+string.removeAll = function(sample, target, start, finish)
+  local newString = ""
+  start = start or 1
+  finish = finish or sample:len()
+  for i=start, finish do
+    if not target == sample:get(i) then --exclude character from string
+      newString = newString .. sample:get(i)
+    end
+  end
+  return newString
+end
+
+table.mapElementCount = function(t)
+  local count = 0
+  for k, v in pairs(t) do 
+    if type(k) ~= "number" then
+      count = count + 1
+    end
+  end
+  return count
+end
+
+string.toCharTable = function(sample) 
+    local t = { }
+    for i=1, sample:len() do 
+        table.insert(t, sample:get(i))
+    end
+    return t
+end
+
+function TypeOfA(obj)
+    local fullType = TypeOf(obj)
+    local fullTypeTokens = fullType:split('%.')
+    local trueType = fullTypeTokens[#fullTypeTokens]
+    return trueType
+end
+
+function super(cls)  --Create reference to superclass
+    return getmetatable(cls)["config"].__super__()
+end
+
+--enable load static methods
+function LoadStatic(target)
+    _[TypeOfA(target())] = target
+end
+
+--=================================================================================
+--Ensure that debug module is NOT nil when this file is executed
+assert(debug, "Cannot run this file because the debug module has been set to 'nil'")
+--Ensure that string module is NOT nil when this file is executed
+assert(string, "Cannot run this file because the string module has been set to 'nil'")
+--Ensure that io module is NOT nil when this file is executed
+assert(io, "Cannot run this file because the io module has been set to 'nil'")
+--Ensure that os module is NOT nil when this file is executed
+assert(os, "Cannot run this file because the os module has been set to 'nil'")
+--Ensure that table module is NOT nil when this file is executed
+assert(table, "Cannot run this file because the table module has been set to 'nil'")
+
+--Assert all built-in modules in lua are of type 'table' 
+assert(TypeOf(debug)=="table", "Cannot run this file because the debug module is no longer a table")
+assert(TypeOf(string)=="table", "Cannot run this file because the string module is no longer a table")
+assert(TypeOf(table)=="table", "Cannot run this file because the table module is no longer a table")
+assert(TypeOf(io)=="table", "Cannot run this file because the table io is no longer a table")
+assert(TypeOf(os)=="table", "Cannot run this file because the table os is no longer a table")
+
+--Check if contents of built-in modules have been modified
+--=================================================================================
 
 function FixedArray(size, ...)
     local vararg = {...}
@@ -633,7 +682,6 @@ function Array(...)
             item = item,
             next = nextNode
         }
-        AssignClassName(component)
         return component
     end 
     --Start
@@ -647,7 +695,67 @@ function Array(...)
                 currentNode = currentNode.next 
             end 
             return length
+        end,
+        reverse = function(self)
+          local prevNode = nil
+          local currentNode = self.head
+          while currentNode ~= nil do
+              local nextNode = currentNode.next
+              currentNode.next = prevNode
+              prevNode = currentNode
+              currentNode = nextNode
+          end
+          self.head = prevNode
+          return self
         end, 
+        insertAt = function(self, index, value)
+          if index > self:count() then
+            --add a bunch of 'nils'
+            repeat 
+              self:add(nil)
+            until self:count() == index - 1
+            self:add(value)
+          else 
+            --if the specified index is less than self:count()
+            local currentNode = self.head
+            if index == 0 then 
+              --create a new node
+              local newNode = Node(value, self.head)
+              self.head = newNode
+            else
+              local count = 1
+              repeat
+                currentNode = currentNode.next
+                count = count + 1
+              until currentNode.next == nil or count == index
+              local prevNode = self.head
+              repeat
+                prevNode = prevNode.next
+              until prevNode.next == currentNode
+              local newNode = Node(value, currentNode)
+              prevNode.next = newNode
+            end
+          end
+          return self
+        end,
+        replace = function(self, index, value)
+          if index >= 1 and index <= self:count() then 
+            local currentNode = self.head
+            if index == 1 then
+              currentNode.item = value
+              return self
+            end 
+            local count = 1
+            repeat
+              currentNode = currentNode.next
+              count = count + 1
+            until currentNode.next == nil or count == index
+            currentNode.item = value 
+          else 
+            error("Index is out of bounds")
+          end 
+          return self
+        end,
         add = function(self, elem)   --Add element into the add of the array
             if self.head == nil then
                 self.head = Node(elem, nil)
@@ -667,47 +775,50 @@ function Array(...)
             return self
         end,
         push = function(self, item)    --insert item at the start of the array
-            local newNode = Node(item, head.next)
+            local newNode = Node(item, self.head)
             self.head = newNode
             return self
         end,
         remove = function(self, elem)  --pop last element in the array
             if self.head ~= nil then
-                local currentNode = self.head
-                if elem then
-                    --Find the first instance of the element and then removes it
-                    if elem == currentNode.item then
-                        self.pop()
-                    else 
-                        while currentNode.next ~= nil and currentNode.next.item ~= elem do
-                            currentNode = currentNode.next
-                        end 
-                        --Reached the affected node named 'currentNode'
-                        if currentNode.next then
-                            --Just remove the last node as usual
-                            self.remove()
-                        else
-                            local auxNode = head
-                            while auxNode.next ~= currentNode do
-                                auxNode = auxNode.next
-                            end
-                            auxNode.next = currentNode.next
-                            --currentNode will be marked for deletion by the lua compiler
-                        end 
-                    end 
-                else 
-                    while currentNode.next ~= nil do 
+              local currentNode = self.head
+              if elem then
+                  --Find the first instance of the element and then removes it
+                  if elem == self.head.item then
+                      self:pop()
+                  else 
+                      while currentNode.next ~= nil do
                         currentNode = currentNode.next
-                    end 
-                    --currentNode at the end of the linked list
-                    local auxNode = self.head
-                    while auxNode.next ~= currentNode do 
-                        auxNode = auxNode.next 
-                    end 
-                    auxNode.next = nil
-                end
-            end 
-            return self
+                        if currentNode.item == elem then 
+                          break
+                        end 
+                      end 
+                      --Reached the affected node named 'currentNode'
+                      if currentNode.next == nil then
+                          --Just remove the last node as usual
+                          self:remove()
+                      else
+                          local auxNode = self.head
+                          while auxNode.next ~= currentNode do
+                              auxNode = auxNode.next
+                          end
+                          auxNode.next = currentNode.next
+                          --currentNode will be marked for deletion by the lua compiler
+                      end 
+                  end 
+              else 
+                  while currentNode.next ~= nil do 
+                      currentNode = currentNode.next
+                  end 
+                  --currentNode at the end of the linked list
+                  local auxNode = self.head
+                  while auxNode.next ~= currentNode do 
+                      auxNode = auxNode.next 
+                  end 
+                  auxNode.next = nil
+              end
+          end 
+          return self
         end,
         isEmpty = function(self)  --Check if the array is empty or not
             return not self.head
@@ -742,7 +853,7 @@ function Array(...)
                     return currentNode.item
                 end 
             else 
-                error("Index out of bounds")
+                error("Index out of bounds for length: " .. self:count() .. ". Given: " .. index)
             end 
         end,
         forEach = function(self, callbackfn)   --Loops through each element in the list
@@ -755,27 +866,89 @@ function Array(...)
                 end 
             end 
         end,
-        contains = function(self, item)
-            --Checks for array membership returns true or false
-            local currentNode = self.head
-            if currentNode.item == item then 
-                return true
-            end
-            while currentNode.next ~= nil do
-                currentNode = currentNode.next
-                if currentNode.item == item then
-                    return true 
+        subList = function(self, start, stop)
+            if start >= 1 and stop <= self:count() then
+                local newArray = Array()
+                for i=start, stop do
+                    newArray:add(self:get(i))
+                end 
+                return newArray
+            else 
+                error("Index out of bounds")
+            end 
+        end,
+        indexOfRange = function(self, subList)
+            local startIndex = nil
+            local endIndex = nil
+            local sublistLength = subList:count()
+            local selfLength = self:count()
+
+            for i = 1, selfLength - sublistLength + 1 do
+                local match = true
+
+                for j = 1, sublistLength do
+                    if self:get(i + j - 1) ~= subList:get(j) then
+                        match = false
+                        break
+                    end
+                end
+
+                if match then
+                    startIndex = i
+                    endIndex = i + sublistLength - 1
+                    break
                 end
             end
-            return false
+
+            return { 
+                start = startIndex, 
+                finish = endIndex 
+            }
+        end, 
+        contains = function(self, item)
+            --Checks for array membership returns true or false
+            if TypeOfA(item) == "Array" then
+                local sublistLength = item:count()
+                if sublistLength == 0 then
+                    return true  -- Empty sublist always exists in any list
+                end
+
+                for i = 1, self:count() - sublistLength + 1 do
+                    local match = true
+                    for j = 1, sublistLength do
+                        if self:get(i + j - 1) ~= item:get(j) then
+                            match = false
+                            break
+                        end
+                    end
+                    if match then
+                        return true
+                    end
+                end
+                return false
+            else 
+                if self.head ~= nil then
+                    local currentNode = self.head
+                    if currentNode.item == item then 
+                        return true
+                    end
+                    while currentNode.next ~= nil do
+                        currentNode = currentNode.next
+                        if currentNode.item == item then
+                            return true 
+                        end
+                    end
+                end
+                return false
+            end 
         end,
         toString = function(self)  --Return the array in a string representation
             local function HandleNestedArraysOrTable(self, item)
                 local starting = ""
-                if TypeOf(item) == "Array" then
+                if TypeOf(item):contains("Array") then
                     local isAllNonArrayOrTable = true
                     for i=1, item:count() do 
-                        if TypeOf(item:get(i))=="Array" or TypeOf(item:get(i))=="table" then
+                        if TypeOf(item:get(i)):contains("Array") or TypeOf(item:get(i))=="table" then
                             isAllNonArrayOrTable = false 
                             break
                         end
@@ -786,7 +959,7 @@ function Array(...)
                         starting = starting .. '['
                         --So long as not table append it to starting
                         for i=1, item:count() do 
-                            if TypeOf(item:get(i))=="Array" or TypeOf(item:get(i))=="table" then
+                            if TypeOf(item:get(i)):contains("Array") or TypeOf(item:get(i))=="table" then
                                 starting = starting .. HandleNestedArraysOrTable(self, item:get(i))
                             else
                                 if Array("number", "string", "boolean", "function", "thread", "userdata"):contains(TypeOf(item:get(i))) then
@@ -810,18 +983,18 @@ function Array(...)
             local header = "["
             if self.head ~= nil then
                 local currentNode = self.head
-                if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item) == "Array" then 
+                if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item):contains("Array") then 
                     header = header .. HandleNestedArraysOrTable(self, currentNode.item) 
                 else 
                     if Array("number", "string", "boolean", "function", "thread", "userdata"):contains(TypeOf(currentNode.item)) then
-                        header = header .. ", " .. currentNode.item
+                        header = header .. currentNode.item
                     else
-                        header = header .. ", " .. "nil"
+                        header = header .. "nil"
                     end
                 end 
                 while currentNode.next ~= nil do
                     currentNode = currentNode.next
-                    if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item) == "Array" then 
+                    if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item):contains("Array") then 
                         header = header .. ", " .. HandleNestedArraysOrTable(self, currentNode.item) 
                     else
                         if Array("number", "string", "boolean", "function", "thread", "userdata"):contains(TypeOf(currentNode.item)) then
@@ -861,11 +1034,57 @@ function Array(...)
             end)
             return newArray
         end, 
+        flatten = function(self)
+            local tokenStack = Array()
+            local charArray = _("Array").fromTable(self:toString():toCharTable())
+            local nestCount = 0
+            charArray:forEach(function(token)
+                if charArray:isEmpty() and token == '[' then
+                    charArray:push(token)
+                end
+                if token == ']' and not charArray:isEmpty() and charArray:peek() == '[' then
+                    charArray:pop()
+                    nestCount = nestCount + 1
+                end
+            end)
+            local chunk = load((function() 
+                local placeholderVariables = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' }
+                local forLoops = [[local array = Array() 
+]]
+                for i=1, nestCount do
+                    forLoops = forLoops .. string.format("for %s=1, %d do \n\t ", placeholderVariables[i], 3) 
+                end
+                forLoops = forLoops .. '\n' .. string.rep("\t", nestCount) .. "array:add(self" .. (function() 
+                    local gets = ""
+                    for i=1, nestCount do
+                        gets = gets .. ":get(" .. placeholderVariables[i] .. ")"
+                    end 
+                    return gets
+                end)() .. ")"
+                for i = nestCount, 1, -1 do
+                    forLoops = forLoops .. '\n' .. string.rep("\t", i-1) .. "end"
+                end
+                forLoops = forLoops .. "\n"
+                forLoops = forLoops .. "return array"
+                return forLoops
+            end)(), "flattenArrayChunk", "t", { self = self, Array = Array })
+            local outArray = chunk() -- Execute the loaded function to capture the changes to 'array'
+            return outArray
+        end, 
+        reduce = function(self, bifunction)
+            local value = 0
+            assert(debug.getinfo(bifunction, "Sunfl").nparams==2, "Bifunction must have exactly 2 parameters. Given: " .. debug.getinfo(bifunction, "Sunfl").nparams)
+            self:forEach(function(item) 
+                value = bifunction(value,item)
+            end)
+            return value
+        end,
         map = function(self, mappingFunction)
             local newArray = Array() --to be mapped to
             self:forEach(function(item) 
-                assert(TypeOf(mappingFunction(item))~="nil", "Must return a type")
-                newArray:add(mappingFunction(item))
+                local mappingResult = mappingFunction(item)
+                assert(TypeOf(mappingResult)~="nil", "Must return a type")
+                newArray:add(mappingResult)
             end)
             return newArray
         end,
@@ -908,19 +1127,55 @@ function Array(...)
         end,
         __static = FinalizeTable({   -- public static Array fromTable(table t)    DAB
             fromTable = function(t)
-                assert(TypeOf(t)=="table") 
+                assert(TypeOfA(t)=="table", "This function can only accept tables, Given: " .. TypeOfA(t)) 
                 --Only take array part
                 local newArray = Array()
                 for k, v in pairs(t) do
                     if TypeOf(k)=="number" then
-                        newArray:add(v)
+                        if TypeOfA(v)=="table" then
+                            local subArray = getmetatable(arrayInstance).__static.fromTable(v)
+                            newArray:add(subArray)
+                        else 
+                            newArray:add(v)
+                        end
+                        --newArray:add(v)
                     end
                 end
+                return newArray
+            end,
+            unpack = function(arr) 
+                --shallow unpacking only
+                assert(TypeOfA(arr) == "Array", "The first argument must be of type 'Array'. Given: " .. TypeOfA(arr))
+                local t = { }
+                for i=1, arr:count() do
+                    table.insert(t, arr:get(i))
+                end 
+                return table.unpack(t)
+            end,
+            deepUnpack = function(arr)
+                assert(TypeOfA(arr) == "Array", "The first argument must be of type 'Array'. Given: " .. TypeOfA(arr))
+                local t = { }
+                for i = 1, arr:count() do
+                    if TypeOfA(arr:get(i)) ~= "Array" then -- Corrected condition
+                        table.insert(t, arr:get(i))
+                    else 
+                        table.insert(t, getmetatable(arrayInstance).__static.deepUnpack(arr:get(i))) -- Capture the result of the recursive call
+                    end 
+                end
+                return table.unpack(t)
+            end,
+            fill = function(what, length)
+                length = length or 1
+                assert(TypeOfA(length) == "number")
+                local newArray = Array()
+                for i=1, length do
+                    newArray:add(what)
+                end 
                 return newArray
             end
         }),
         __eq = function(self, other)
-            assert(TypeOf(self) == "Array" and TypeOf(other) == "Array", "Both arguments need to be of type 'Array'")
+            assert(TypeOf(self) == "Array" and TypeOf(other) == "Array", "Both arguments need to be of type 'Array', arg1 is of type: " .. TypeOf(self) .. " and arg 2 is of type: " .. TypeOf(other))
             if self:count() == other:count() then 
                 for i = 1, self:count() do
                     print('current: ', self:get(i), 'other: ', other:get(i))
@@ -937,15 +1192,18 @@ function Array(...)
     setmetatable(getmetatable(arrayInstance).__static, { 
         __index = function(self, k)
             error("Symbol not found: " .. tostring(k))
+        end,
+        __newindex = function(self, k, v)
+            error("You are not allowed to modify this.")
         end
     })
     local varargLength = select("#", ...)
     --Check for contents in vararg
-    if #vararg > 0 then
+    if varargLength > 0 then
         --Copy items from vararg table into array.
         local newArray = Array()
         for i=1, varargLength do
-            newArray:add(tostring(select(i, ...)))
+            newArray:add(select(i, ...))
         end
         return newArray
     end
@@ -953,6 +1211,7 @@ function Array(...)
     AssignClassName(arrayInstance)
     return arrayInstance
 end
+LoadStatic(Array)
 
 --include the Array class into _G
 _[TypeOf(Array())] = Array
@@ -1099,8 +1358,209 @@ function DoublyLinkedList(...)
 end
 
 function Map()
-
+  local function hash(key)
+    assert(type(key) == "string", "The key must be a valid string for the hashing process to continue. Given type: " .. type(key))
+    local hashResult = 0
+    local characters = nil
+    local strLen = key:len()
+    if strLen < 2 then 
+      characters = key:get(1):byte()
+      return characters
+    end
+    characters = (key:get(1):byte() * 52 + key:get(2):byte()) % 1000
+    for i = 1, strLen-1 do
+      if i ~= strLen then
+        characters = (characters * 52 + key:get(i+1):byte()) % 1000
+      end 
+    end
+    return (characters % 1000) + 1
+  end
+  local function KeyValuePair(key, value)
+    local instance = { 
+       key = key, 
+       value = value
+    }
+    setmetatable(instance, { 
+      __tostring = function(self)
+        return string.format("KeyValuePair { %s, %s }", self.key, self.value)
+      end
+    })
+    AssignClassName(instance)
+    return instance
+  end
+  local keyIndicesNotNull
+  local instance = {
+    data = Array(),
+    insertionStack = Array(),
+    count = function(self)
+      return self.insertionStack:count()
+    end, 
+    insert = function(self, key, value)
+      --keys are sparse arrays 'technically'
+      --So technically hashmaps are 'sparse matrices'??
+      --reduce memory consumption for locations which are marked as 'nil'
+      keyIndicesNotNull = self.data:map(function(e) return self.data:indexOf(e) end):filter(function(e) return e ~= 0 end)
+      --if not self:containsKey(key) then  --uncomment this portion of code to allow unique keys
+        local h = hash(key)
+        local success, result = pcall(function() 
+          return self.data:get(h) 
+        end)
+        if not success then 
+          self.data:insertAt(h, Array())
+          local keyValuePair = KeyValuePair(key, value)
+          self.data:get(h):add(keyValuePair)
+        else 
+          --if a list already exists at index h or if its nil then
+          if result then
+            local keyValuePair = KeyValuePair(key, value)
+            result:add(keyValuePair)
+          else
+            self.data:replace(h, Array())
+            local keyValuePair = KeyValuePair(key, value)
+            self.data:get(h):add(keyValuePair)
+          end
+        end
+        self.insertionStack:push(key)
+      --end
+      return self
+    end,
+    containsKey = function(self, key)
+      local success, lengths = pcall(function() 
+        return self.data:get(hash(key)) 
+      end)
+      if not success or not lengths then 
+        return false 
+      else 
+        if lengths:count() == 1 then 
+          return lengths:get(1).key == key
+        else 
+          for i=1, lengths:count() do
+            if lengths:get(i).key == key then
+              return true
+            end 
+          end 
+        end
+      end 
+      return false
+    end, 
+    get = function(self, key)
+      local success, lengths = pcall(function() return self.data:get(hash(key)) end)
+      if success and lengths then 
+        if lengths:count() == 1 then 
+          return lengths:get(1).value
+        else 
+          for i=1, lengths:count() do
+            if lengths:get(i).key == key then
+              return lengths:get(i).value
+            end 
+          end 
+        end
+      else
+        error("Key does not exist. Given: " .. key)
+      end
+      return lengths
+    end,
+    set = function(self, key, value)
+        local success, lengths = pcall(function() return self.data:get(hash(key)) end)
+            if success and lengths then 
+                if lengths:count() == 1 then 
+                lengths:get(1).value = value -- Update the value field
+            else
+                for i=1, lengths:count() do
+                    if lengths:get(i).key == key then 
+                        lengths:get(i).value = value -- Update the value field
+                    end 
+                end 
+            end  
+        else 
+            error("Key does not exist. Given: " .. key)
+        end
+        return self 
+    end, 
+    forEach = function(self, callbackfn)
+      --loop through the insertion stack instead 
+      self.insertionStack:reverse():forEach(function(key) 
+        local value = self:get(key)
+        callbackfn(key, value)
+      end)
+    end, 
+    remove = function(self, k)
+      if not self:containsKey(k) then 
+        error("Key does not exist in this map")
+      else 
+        local success, lengths = pcall(function() return self.data:get(hash(key)) end)
+        if success and lengths then 
+          if lengths:count() == 1 then
+            --remove the first element in the lis
+          end
+        end
+      end
+    end,
+    toString = function(self)
+      local function HandleInternalMaps()
+        local s = "Map ["
+        
+        s = s .. "]"
+        return s
+      end
+      local s = "Map ["
+      local array = Array()
+      for i=1,self.data:count() do
+        if TypeOfA(self.data:get(i)) == "Array" then 
+          for j=1,self.data:get(i):count() do 
+            local keyPortion = self.data:get(i):get(j).key
+            local valuePortion = self.data:get(i):get(j).value
+            array:add(KeyValuePair(keyPortion, valuePortion))
+          end 
+        end 
+      end
+      --re-arrange array such that it conforms to self.insertionStack
+      local newReturn = Array()
+      for i=1, self.insertionStack:count() do
+        for j=1, array:count() do
+          if array:get(j).key == self.insertionStack:get(i) then 
+            newReturn:add(array:get(j).key, array:get(j).value)
+          end
+        end 
+      end
+      for i = 1, newReturn:count() do
+        if TypeOf(self:get(newReturn:get(i))) == "string" then
+          s = s .. string.format("{'%s': '%s'}", newReturn:get(i), self:get(newReturn:get(i)))
+        else
+          s = s .. string.format("{'%s': %s}", newReturn:get(i), self:get(newReturn:get(i)))
+        end
+        if i ~= newReturn:count() then
+          s = s .. ", "
+        end
+      end
+      s = s .. "]"
+      return s
+    end 
+  }
+  setmetatable(instance, {
+    __newindex = function(self, k, v)
+      error("You are not allowed to add methods to this class")
+    end, 
+    __tostring = function(self)
+      return self:toString()
+    end, 
+    __static = { 
+      fromTable = function(t)
+        local newMap = Map()
+        for k, v in pairs(t) do
+          if TypeOf(k) == "string" then
+            newMap:insert(k, v)
+          end
+        end
+        return newMap
+      end
+    }
+  })
+  AssignClassName(instance)
+  return instance
 end
+LoadStatic(Map)
+
 
 --Wrapper class for table
 function Table(t) 
