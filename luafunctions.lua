@@ -697,16 +697,16 @@ function Array(...)
             return length
         end,
         reverse = function(self)
-          local prevNode = nil
-          local currentNode = self.head
-          while currentNode ~= nil do
-              local nextNode = currentNode.next
-              currentNode.next = prevNode
-              prevNode = currentNode
-              currentNode = nextNode
-          end
-          self.head = prevNode
-          return self
+            local prevNode = nil
+            local currentNode = self.head
+            while currentNode ~= nil do
+                local nextNode = currentNode.next
+                currentNode.next = prevNode
+                prevNode = currentNode
+                currentNode = nextNode
+            end
+            self.head = prevNode
+            return self
         end, 
         insertAt = function(self, index, value)
           if index > self:count() then
@@ -807,15 +807,19 @@ function Array(...)
                       end 
                   end 
               else 
-                  while currentNode.next ~= nil do 
-                      currentNode = currentNode.next
+                  if self:count() > 1 then
+                    while currentNode.next ~= nil do 
+                        currentNode = currentNode.next
+                    end 
+                    --currentNode at the end of the linked list
+                    local auxNode = self.head
+                    while auxNode.next ~= currentNode do
+                        auxNode = auxNode.next
+                    end 
+                    auxNode.next = nil 
+                  elseif self:count() == 1 then 
+                    self.head = nil 
                   end 
-                  --currentNode at the end of the linked list
-                  local auxNode = self.head
-                  while auxNode.next ~= currentNode do 
-                      auxNode = auxNode.next 
-                  end 
-                  auxNode.next = nil
               end
           end 
           return self
@@ -874,7 +878,7 @@ function Array(...)
                 end 
                 return newArray
             else 
-                error("Index out of bounds")
+                error("Index out of bounds. Given:\n start: " .. start .. "\n stop: " .. stop .. "\n for list of length: " .. self:count())
             end 
         end,
         indexOfRange = function(self, subList)
@@ -945,10 +949,10 @@ function Array(...)
         toString = function(self)  --Return the array in a string representation
             local function HandleNestedArraysOrTable(self, item)
                 local starting = ""
-                if TypeOf(item):contains("Array") then
+                if TypeOf(item):contains("Array") or TypeOf(item):contains("DoublyLinkedList") then
                     local isAllNonArrayOrTable = true
                     for i=1, item:count() do 
-                        if TypeOf(item:get(i)):contains("Array") or TypeOf(item:get(i))=="table" then
+                        if TypeOf(item:get(i)):contains("Array") or TypeOf(item:get(i)):contains("DoublyLinkedList") or TypeOf(item:get(i))=="table" then
                             isAllNonArrayOrTable = false 
                             break
                         end
@@ -959,7 +963,7 @@ function Array(...)
                         starting = starting .. '['
                         --So long as not table append it to starting
                         for i=1, item:count() do 
-                            if TypeOf(item:get(i)):contains("Array") or TypeOf(item:get(i))=="table" then
+                            if TypeOf(item:get(i)):contains("Array") or TypeOf(item:get(i)):contains("DoublyLinkedList") or TypeOf(item:get(i))=="table" then
                                 starting = starting .. HandleNestedArraysOrTable(self, item:get(i))
                             else
                                 if Array("number", "string", "boolean", "function", "thread", "userdata"):contains(TypeOf(item:get(i))) then
@@ -983,7 +987,7 @@ function Array(...)
             local header = "["
             if self.head ~= nil then
                 local currentNode = self.head
-                if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item):contains("Array") then 
+                if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item):contains("Array") or TypeOf(currentNode.item):contains("DoublyLinkedList") then 
                     header = header .. HandleNestedArraysOrTable(self, currentNode.item) 
                 else 
                     if Array("number", "string", "boolean", "function", "thread", "userdata"):contains(TypeOf(currentNode.item)) then
@@ -994,7 +998,7 @@ function Array(...)
                 end 
                 while currentNode.next ~= nil do
                     currentNode = currentNode.next
-                    if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item):contains("Array") then 
+                    if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item):contains("Array") or TypeOf(currentNode.item):contains("DoublyLinkedList") then 
                         header = header .. ", " .. HandleNestedArraysOrTable(self, currentNode.item) 
                     else
                         if Array("number", "string", "boolean", "function", "thread", "userdata"):contains(TypeOf(currentNode.item)) then
@@ -1071,13 +1075,12 @@ function Array(...)
             local outArray = chunk() -- Execute the loaded function to capture the changes to 'array'
             return outArray
         end, 
-        reduce = function(self, bifunction)
-            local value = 0
+        reduce = function(self, collector, bifunction)
             assert(debug.getinfo(bifunction, "Sunfl").nparams==2, "Bifunction must have exactly 2 parameters. Given: " .. debug.getinfo(bifunction, "Sunfl").nparams)
             self:forEach(function(item) 
-                value = bifunction(value,item)
+                collector = bifunction(collector,item)
             end)
-            return value
+            return collector
         end,
         map = function(self, mappingFunction)
             local newArray = Array() --to be mapped to
@@ -1103,12 +1106,13 @@ function Array(...)
                 if TypeOf(currentNode.item)=="number" then 
                     total = total + currentNode.item
                 else 
-                    error("A non-number is detected in the array! Failed to perform sum. Erroneous item index: " .. i .. " which is of type: " .. TypeOf(currentNode.item))
+                    error("A non-number is detected in the array! Failed to perform sum. Erroneous item index: " .. i .. " which is of type: " .. TypeOfA(currentNode.item))
                 end 
             end 
             return total
         end,
         min = function(self)
+            --all elements in the array must be of type number
             local minimum = 0
             local currentNode = self.head
             local currentIndex = 1
@@ -1117,13 +1121,220 @@ function Array(...)
                 currentIndex = currentIndex + 1
             end
             while currentNode.next ~= nil do
-                
+                currentNode = currentNode.next
+                if TypeOfA(currentNode.item) == "number" then
+                    if currentNode.item < minimum then
+                        minimum = currentNode.item
+                    end 
+                else
+                    error("Failed to get max. Non-number value found.")
+                end 
             end
-        end 
+        end, 
+        max = function(self)
+            --all elements in the array must be of type number
+            local maximum = 0
+            local currentIndex = 0
+            if not self:isEmpty() then
+                local currentNode = self.head 
+                if TypeOfA(currentNode.item) == "number" then
+                    maximum = currentNode.item
+                else 
+                    error("Failed to get max. Non-number value found.") 
+                end
+                while currentNode.next ~= nil do
+                    currentNode = currentNode.next
+                    if TypeOfA(currentNode.item) == "number" then
+                        if currentNode.item > maximum then
+                            maximum = currentNode.item
+                        end 
+                    else
+                        error("Failed to get max. Non-number value found.")
+                    end
+                end 
+                return maximum
+            else 
+                return maximum 
+            end 
+        end, 
+        indexOfAll = function(self, item)
+            local indices = Array()
+            if not self:isEmpty() then
+                for i=1, self:count() do
+                    if self:get(i) == item then
+                        indices:add(i)
+                    end 
+                end 
+            end 
+            return indices
+        end, 
+        removeAt = function(self, index)
+            if not self:isEmpty() then
+                local currentNode = self.head
+                if index == 1 then
+                    self:pop()
+                elseif index == self:count() then
+                    self:remove() 
+                else 
+                    local traversals = 1
+                    while traversals < index do
+                        currentNode = currentNode.next
+                    end  
+                    local auxNode = self.head
+                    while auxNode.next ~= currentNode do 
+                        auxNode = auxNode.next
+                    end 
+                    auxNode.next = currentNode.next
+                end 
+            end 
+            return self 
+        end, 
+        isSorted = function(self, ascending)
+            ascending = ascending or true
+            local first = self:get(1)
+            for i = 2, self:count() do
+                if self:get(i) < first then
+                    return false
+                end
+                first = self:get(i)
+            end
+            return true
+        end, 
+        sort = function(self, ascending)
+            --if strings or other data types use radix sort 
+            --if numbers use selection sort
+            ascending = ascending or true
+            local allTypes = self
+                :map(function(item) return TypeOfA(item) end)
+                :reduce({ }, function(a, b) 
+                    a[b] = Array()
+                    return a 
+                end)
+            --utilize __lt metamethod, and it must not be nil otherwise the sorting will fail.
+            for k, v in pairs(allTypes) do
+                self:forEach(function(item) 
+                    if TypeOfA(item) == k then
+                        v:add(item)
+                    end
+                end) 
+            end
+            for t, v in pairs(allTypes) do
+                if t == "number" then
+                    local start = 1
+                    local stop = v:count()
+                    
+                    local function repeatSort(v, start, stop)
+                        if start >= stop then
+                            return
+                        end
+
+                        local smallest = v:get(start)
+                        local largest = v:get(start)
+
+                        for i = start, stop do
+                            local value = v:get(i)
+                            if value < smallest then
+                                smallest = value
+                            elseif value > largest then
+                                largest = value
+                            end
+                        end
+
+                        local indexToReplaceSmallestArray = Array()
+                        local indexToReplaceLargestArray = Array()
+
+                        for i = start, stop do
+                            if v:get(i) == smallest then
+                                indexToReplaceSmallestArray:add(i)
+                                
+                            end
+                            if v:get(i) == largest then
+                                indexToReplaceLargestArray:add(i)
+                            end
+                        end
+                        
+                        if indexToReplaceSmallestArray:count() == 1 then
+                            local originalStartValue = v:get(start)
+                            v:replace(start, smallest)
+                            v:replace(indexToReplaceSmallestArray:get(1), originalStartValue)
+                        else 
+                            local begin = start 
+                            for i=1,indexToReplaceSmallestArray:count() do
+                                local originalValue = v:get(begin)
+                                if originalValue ~= smallest then
+                                    v:replace(begin, smallest)
+                                    v:replace(indexToReplaceSmallestArray:get(i), originalValue)
+                                end 
+                                begin = begin + 1
+                            end 
+                            start = start + indexToReplaceSmallestArray:count() - 1
+                        end 
+                        
+                        if indexToReplaceLargestArray:count() == 1 then
+                            local originalStopValue = v:get(stop)
+                            v:replace(stop, largest)
+                            v:replace(indexToReplaceLargestArray:get(1), originalStopValue) 
+                        else 
+                            local last = stop
+                            for i=1,indexToReplaceLargestArray:count() do 
+                                local originalValue = v:get(last)
+                                if originalValue ~= largest then 
+                                    v:replace(last, largest)
+                                    v:replace(indexToReplaceLargestArray:get(i), originalValue)
+                                end
+                                last = last - 1
+                            end 
+                            stop = stop - indexToReplaceLargestArray:count() + 1
+                        end
+                        print('LIST: ', v)
+                        repeatSort(v, start + 1, stop - 1)
+                    end
+                    
+                    repeatSort(v, start, stop)
+                    
+                    print("============================================")
+                else 
+                    for i=1,v:count() do    
+                        local ltOp = getmetatable(v).__lt
+                        local gtOp = getmetatable(v).__gt
+                        if ltOp then
+                            ltOp(v:get(i), v:get(i+1))
+                        elseif gtOp then 
+                            
+                        else 
+                            error("Unable to sort the " .. TypeOfA(v) .. " elements in the array.")
+                        end
+                    end
+                end
+            end 
+            local returnArr = Array()
+            for k, v in pairs(allTypes) do
+                returnArr = returnArr + v
+            end
+            return returnArr
+        end
     }
     setmetatable(arrayInstance, { 
         __tostring = function(self) 
             return self:toString()
+        end,
+        __add = function(self, operand)
+            --merge two arrays together
+            if TypeOfA(operand) == "Array" then
+                operand:forEach(function(item) 
+                    self:add(item)
+                end)
+                return self
+            else 
+                error("The operand must be of type 'Array' in order to continue. Given: " .. TypeOfA(operand))
+            end
+        end,
+        __lt = function(self, operand)
+            if self:count() < operand:count() then
+                return true
+            else
+                return false
+            end
         end,
         __static = FinalizeTable({   -- public static Array fromTable(table t)    DAB
             fromTable = function(t)
@@ -1132,13 +1343,7 @@ function Array(...)
                 local newArray = Array()
                 for k, v in pairs(t) do
                     if TypeOf(k)=="number" then
-                        if TypeOfA(v)=="table" then
-                            local subArray = getmetatable(arrayInstance).__static.fromTable(v)
-                            newArray:add(subArray)
-                        else 
-                            newArray:add(v)
-                        end
-                        --newArray:add(v)
+                        newArray:add(v)
                     end
                 end
                 return newArray
@@ -1175,7 +1380,7 @@ function Array(...)
             end
         }),
         __eq = function(self, other)
-            assert(TypeOf(self) == "Array" and TypeOf(other) == "Array", "Both arguments need to be of type 'Array', arg1 is of type: " .. TypeOf(self) .. " and arg 2 is of type: " .. TypeOf(other))
+            assert(TypeOfA(self) == "Array" and TypeOfA(other) == "Array", "Both arguments need to be of type 'Array', arg1 is of type: " .. TypeOfA(self) .. " and arg 2 is of type: " .. TypeOfA(other))
             if self:count() == other:count() then 
                 for i = 1, self:count() do
                     print('current: ', self:get(i), 'other: ', other:get(i))
