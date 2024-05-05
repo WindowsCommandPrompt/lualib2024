@@ -167,16 +167,13 @@ function TypeOf(obj)
 end
 
 string.contains = function(sample, str)
-    --returns boolean
-    assert(TypeOf(sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(sample))
-    assert(TypeOf(str)=="string", "Search string must be of type 'string', not " .. TypeOf(str))
-    for i = 0, string.len(sample) - 1 do
-        if string.get(str, 0) == string.get(sample, i) and string.sub(sample, i+1, i + string.len(str)) == str then
-            return true
-        end
+  for i=1, sample:len() do
+    if sample:sub(i, i+str:len()-1)==str then
+      return true
     end
-    return false
-end
+  end
+  return false
+end 
 
 string.containsOneOf = function(sample, list)     
     --[[ 
