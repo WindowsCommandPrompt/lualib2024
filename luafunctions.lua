@@ -1429,6 +1429,125 @@ setmetatable(_, {
     end
 })
 
+local function CyclicArray(...)
+    local function Node(item, next)
+        local instance = { 
+            item = item, 
+            next = next
+        }
+        AssignClassName(instance, GenerateClassNameComplete())
+        return instance
+    end 
+    local size = 0
+    local arrayInstance = { 
+        head = nil, 
+        isEmpty = function(self)
+            return super(self).isEmpty(self)
+        end,
+        indexOf = function(self, item)
+            return super(self).indexOf(self, item)
+        end,
+        count = function(self)
+            return size 
+        end, 
+        add = function(self, item)
+            --Implementation is similar to the 'add' function in the 'Array' class
+            if self:isEmpty() then
+                local newNode = Node(item, nil)
+                newNode.next = newNode
+                self.head = newNode
+            else 
+                local movement = 1
+                local currentNode = self.head 
+                while movement < size do
+                    currentNode = currentNode.next 
+                    movement = movement + 1
+                end
+                local newNode = Node(item, self.head)
+                currentNode.next = newNode
+            end 
+            size = size + 1
+            return self
+        end, 
+        replace = function(self, index, value)
+            --do modulo arithmetic here so long as index is greater than 1
+            if index > size then 
+                index = (index - 1) % (size + 1)
+            end 
+            super(self).replace(self, index, value)
+            return self
+        end,
+        get = function(self, index)
+            if index > size then 
+                index = (index - 1) % size + 1
+            end 
+            return super(self).get(self, index)
+        end, 
+        removeAt = function(self, index)
+            if index > size then
+                index = (index - 1) % size + 1
+            end
+            size = size - 1
+            return super(self).removeAt(self, index)
+        end, 
+        peek = function(self)
+            return super(self).peek(self) 
+        end, 
+        forEach = function(self, callbackfn)
+            for i=1,size do
+                callbackfn(self:get(i))
+            end
+        end, 
+        toString = function(self)
+            local function HandleNestedCyclicArrays()
+                
+            end
+            local outString = "["
+            if self.head ~= nil then
+                local currentNode = self.head
+                if Array("number", "string", "boolean", "function", "thread", "userdata"):contains(TypeOf(currentNode.item)) then
+                    outString = outString .. currentNode.item
+                elseif TypeOf(currentNode.item) == "nil" then
+                    outString = outString .. "nil"
+                elseif TypeOfA(currentNode.item) == "Array" then
+                    outString = outString .. super(self).toString(currentNode.item)
+                end
+                local traversals = 1
+                while traversals < size do
+                    currentNode = currentNode.next
+                    if Array("number", "string", "boolean", "function", "thread", "userdata"):contains(TypeOf(currentNode.item)) then
+                        outString = outString .. ", " .. currentNode.item
+                    elseif TypeOf(currentNode.item) == "nil" then
+                        outString = outString .. ", " .. "nil"
+                    elseif TypeOfA(currentNode.item) == "Array" then
+                        outString = outString .. ", " .. super(self).toString(currentNode.item)
+                    end
+                    traversals = traversals + 1
+                end
+            end 
+            outString = outString .. "]"
+            return outString 
+        end
+    }
+    setmetatable(arrayInstance, { 
+        __tostring = function(self)
+            return self:toString()
+        end, 
+        __static = { 
+            fromTable = function(t)
+                local newCyclicArray = CyclicArray()
+                for i=1,#t do 
+                    newCyclicArray:add(t[i])
+                end 
+                return newCyclicArray
+            end 
+        }
+    })
+    AssignClassName(arrayInstance, "CyclicArray", "Array")
+    return arrayInstance
+end 
+LoadStatic(CyclicArray)
+
 -- print(_("Array").fromTable({ }))    no error 
 -- print(Array().fromTable({ })) error
 
