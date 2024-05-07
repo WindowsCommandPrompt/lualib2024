@@ -1,14 +1,140 @@
 --Li Zhe Yun 2024
 
-local _ = _G
+table.forEach = function(t, callbackfn)
+  for k, v in pairs(t) do if type(k)=="number" then callbackfn(v) end end
+end
 
---Keep track of inheritance lists (Attach a doubly linked list to it)
-_["inherit"] = nil
+table.join = function(t, delim)
+  delim = delim or ""
+  local fullString = ""
+  table.forEach(t, function(i) fullString = fullString .. delim .. tostring(i) end)
+  return fullString
+end 
+
+table.containsKey = function(t, elem) 
+  --only search within the array part of the table
+  for k, _ in pairs(t) do
+    if k == elem then return true end
+  end 
+  return false
+end
+
+table.contains = function(t, elem)
+  for k, v in pairs(t) do 
+    if v == elem then return true end 
+  end 
+  return false
+end
+
+string.get = function(sample, index)
+  if index > sample:len() or index < -(sample:len()) or index == 0 then 
+    error("Index out of bounds for string length: " .. string.len(sample))
+  elseif index >= -(sample:len()) and index <= -1 then 
+    return sample:sub(index, index)
+  else 
+    return sample:sub(index, index)
+  end
+end
+
+string.findAllMultiple = function(sample, ...)
+  local vararg = {...}
+  local results = { }
+  for i=1, #vararg do
+    table.insert(results, sample:findAll(vararg[i]))
+  end 
+  return results
+end
+
+string.findAll = function(sample, str)
+  local matches = { }
+  local start, finish = 1, 1 
+  repeat 
+    start, finish = sample:find(str, finish)
+    if start then 
+      local match = sample:sub(start, finish)
+      table.insert(matches, { 
+          match = match,
+          start = start, 
+          finish = finish
+      })
+      finish = finish + 1
+    end
+  until not start
+  return matches
+end 
+
+string.split = function(sample, regex) --split functions does not accept plain strings. 
+  regex = regex or " "
+  local portions = { }
+  local allMatches = sample:findAll(regex) 
+  local marker = 1
+  if #allMatches > 0 then
+    for i=1, #allMatches+1 do 
+      if i == 1 then 
+        table.insert(portions, sample:sub(1, allMatches[i].start-1))
+        marker = allMatches[i]
+      elseif i > 1 and i < #allMatches + 1 then 
+        table.insert(portions, sample:sub(marker.finish+1, allMatches[i].start-1)) 
+        marker = allMatches[i]
+      else 
+        table.insert(portions, sample:sub(marker.finish+1, #sample))
+      end
+    end 
+  else 
+    table.insert(portions, sample)
+  end
+  return portions
+end
+
+string.contains = function(sample, str)
+  for i=1, sample:len() do
+    if sample:sub(i, i+str:len()-1)==str then
+      return true
+    end
+  end
+  return false
+end 
+
+string.removeAll = function(sample, target, start, finish)
+  local newString = ""
+  start = start or 1
+  finish = finish or sample:len()
+  for i=start, finish do
+    if not target == sample:get(i) then --exclude character from string
+      newString = newString .. sample:get(i)
+    end
+  end
+  return newString
+end
+
+table.mapElementCount = function(t)
+  local count = 0
+  for k, v in pairs(t) do 
+    if type(k) ~= "number" then
+      count = count + 1
+    end
+  end
+  return count
+end
+
+string.toCharTable = function(sample) 
+    local t = { }
+    for i=1, sample:len() do 
+        table.insert(t, sample:get(i))
+    end
+    return t
+end
+
+local function TRUNCATE_FLOATING_POINT(d, precision)
+    return tonumber(string.format(string.format("%s", string.format("%%.%df", precision)), d))
+end
+
+local _               = _G
 
 --Keep track of type names
-_["types"] = { }
+_["types"]            = { }
+local abs             = math.abs
 
---Function add ons
 function FinalizeTable(t)
     assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
     local proxy = { }
@@ -51,14 +177,6 @@ function FinalizeTable(t)
     return proxy --Return proxy table instead of t
 end
 
---Generate full class name 
---[[ 
-    function A()
-        function B() 
-        end 
-    end
-    TypeOf(B()) should give A.B
-]]
 function GenerateClassNameComplete()
     local index = 1
     while true do
@@ -96,20 +214,6 @@ function AssignClassName(t, name, super)
     local function MakeConstant(name, t)
         
     end 
-    -- if super is not nil
-    if super then 
-        for rootClass, inheritanceList in pairs(_["inherit"]) do
-            for i=1, rootClass:count() do
-                --go down the list of classes 
-                if _["inherit"][rootClass][i] == super then
-                    --add the subclass to the list
-                    _["inherit"][rootClass]:add(name)
-                end
-            end
-        end
-    else
-        _["inherit"][name] = DoublyLinkedList()
-    end
     MakeConstant('transfer["config"]', transfer["config"]) 
     setmetatable(t, transfer)
     return t
@@ -166,154 +270,6 @@ function TypeOf(obj)
     end 
 end
 
-string.contains = function(sample, str)
-  for i=1, sample:len() do
-    if sample:sub(i, i+str:len()-1)==str then
-      return true
-    end
-  end
-  return false
-end 
-
-string.containsOneOf = function(sample, list)     
-    --[[ 
-        Can be used in the following example to parse the following syntax
-        'if a == { 'a' or 'b' } then'
-    ]]
-    assert(TypeOf(sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(sample))
-    assert(TypeOf(list)=="Array" or TypeOf(list) == "table", "Sample string must be of type 'table' or 'Array', not " .. TypeOf(list))
-    if type(list) == "table" then 
-        --Do table iteration
-        for _, v in pairs(list) do 
-            if sample:contains(v) then return true end 
-        end 
-    else 
-        list.forEach(function(i) 
-            if sample:contains(i) then return true end
-        end) 
-    end 
-    return false 
-end 
-
-string.locate = function(sample, str)
-    local start = -1
-    local j = 0
-    for i=0, sample:len()-1 do
-        if start == -1 and sample:get(i) == str:get(j) then 
-            --set anchor
-            start = i
-            if j == str:len() - 1 then 
-                return {
-                    begin = start,
-                    finish = i
-                } 
-            end
-            j = j + 1
-        elseif start ~= -1 and str:get(j) == sample:get(i) then 
-            if j == str:len() - 1 then 
-                return {
-                    begin = start,
-                    finish = i
-                } 
-            end 
-            j = j + 1
-        else
-            start = -1
-        end 
-    end 
-    return nil
-end  
-
-string.get = function(sample, index)
-    if index > string.len(sample) or index < -string.len(sample) or index == 0 then
-        error("Index out of bounds for string length: " .. string.len(sample))
-    elseif index >= -string.len(sample) and index <= -1 then
-        return string.sub(sample, index, index)
-    else
-        return string.sub(sample, index-1, index)
-    end
-end
-
-string.findAll = function(sample, str)
-    local matches = { }
-    local start, finish = 1, 1
-    repeat
-      start, finish = sample:find(str, finish)
-      if start then
-        local match = sample:sub(start, finish)
-        table.insert(matches, FinalizeTable({ 
-            match = match,
-            start = start,
-            finish = finish
-        }))
-        finish = finish + 1  
-      end
-    until not start
-    return matches
-end 
-
-string.split = function(sample, regex)
-    local portions = { }
-    local allMatches = sample:findAll(regex)
-    local marker = 1
-    for i=1,#allMatches+1 do
-        if i == 1 then
-            table.insert(portions, sample:sub(1, allMatches[i].start-1))
-            marker = allMatches[i]
-        elseif i > 1 and i < #allMatches+1 then
-            table.insert(portions, sample:sub(marker.finish+1, allMatches[i].start-1))
-            marker = allMatches[i]
-        else 
-           table.insert(portions, sample:sub(marker.finish+1, #sample-1))
-        end
-    end
-    return portions
-end
-
-table.containsKey = function(t, elem)
-    for k, _ in pairs(t) do
-        if k == elem then return true end 
-    end 
-    return false
-end 
-
-table.contains = function(t, elem)
-  for k, v in pairs(t) do 
-    if v == elem then return true end 
-  end 
-  return false
-end
-
-string.removeAll = function(sample, target, start, finish)
-  local newString = ""
-  start = start or 1
-  finish = finish or sample:len()
-  for i=start, finish do
-    if not target == sample:get(i) then --exclude character from string
-      newString = newString .. sample:get(i)
-    end
-  end
-  return newString
-end
-
-table.mapElementCount = function(t)
-  local count = 0
-  for k, v in pairs(t) do 
-    if type(k) ~= "number" then
-      count = count + 1
-    end
-  end
-  return count
-end
-
-string.toCharTable = function(sample) 
-    local t = { }
-    for i=1, sample:len() do 
-        table.insert(t, sample:get(i))
-    end
-    return t
-end
-
 function TypeOfA(obj)
     local fullType = TypeOf(obj)
     local fullTypeTokens = fullType:split('%.')
@@ -324,6 +280,14 @@ end
 function super(cls)  --Create reference to superclass
     return getmetatable(cls)["config"].__super__()
 end
+
+--make static methods callable without calling Array function
+setmetatable(_, { 
+    __call = function(self, k)
+        assert(getmetatable(_G[k]()).__static, "NO STATIC METHODS FOUND!")
+        return getmetatable(_G[k]()).__static
+    end
+})
 
 --enable load static methods
 function LoadStatic(target)
