@@ -871,37 +871,51 @@ function Array(...)
             }
         end, 
         contains = function(self, item)
-            --Checks for array membership returns true or false
-            if TypeOfA(item) == "Array" then
-                local sublistLength = item:count()
+ -- Checks whether sublist exists within the list
+            if TypeOfA(sublist) == "Array" then
+                local sublistLength = sublist:count()
                 if sublistLength == 0 then
                     return true  -- Empty sublist always exists in any list
                 end
-
-                for i = 1, self:count() - sublistLength + 1 do
-                    local match = true
-                    for j = 1, sublistLength do
-                        if self:get(i + j - 1) ~= item:get(j) then
-                            match = false
-                            break
+                local listLength = self:count()
+                for i=1,listLength do
+                    if TypeOfA(self:get(i)) == "Array" then
+                        if self:get(i):count() ~= sublistLength then 
+                            goto continue
                         end
-                    end
-                    if match then
+                        for j=1, sublistLength do
+                            if self:get(i):get(j) ~= sublist:get(j) then
+                                goto continue
+                            end
+                        end
                         return true
-                    end
+                    end 
+                    ::continue::
                 end
                 return false
             else 
                 if self.head ~= nil then
                     local currentNode = self.head
-                    if currentNode.item == item then 
-                        return true
-                    end
-                    while currentNode.next ~= nil do
-                        currentNode = currentNode.next
-                        if currentNode.item == item then
-                            return true 
+                    while currentNode ~= nil do
+                        -- Check if the current node matches the sublist
+                        local match = true
+                        local sublistNode = sublist.head
+                        local currentNodeToCheck = currentNode
+
+                        while sublistNode ~= nil and currentNodeToCheck ~= nil do
+                            if currentNodeToCheck.item ~= sublistNode.item then
+                                match = false
+                                break
+                            end
+                            sublistNode = sublistNode.next
+                            currentNodeToCheck = currentNodeToCheck.next
                         end
+
+                        if match and sublistNode == nil then
+                            return true
+                        end
+
+                        currentNode = currentNode.next
                     end
                 end
                 return false
@@ -1273,7 +1287,122 @@ function Array(...)
                 returnArr = returnArr + v
             end
             return returnArr
-        end
+        end,
+        toUnmodifiableSet = function(self)
+            
+        end,
+        enumerate = function(self)
+            
+        end,
+        combinations = function(arr, size)
+            local combinations = Array()
+            size = size or arr:count()
+            if not arr:isEmpty() then
+                if size == 1 then
+                    arr:forEach(function(item) combinations:add(Array(item)) end)
+                    combinations = combinations:reduce(Array(), function(a, b) 
+                        if not a:contains(b) then 
+                            a:add(b) 
+                        end 
+                        return a 
+                    end)
+                elseif size == 2 then
+                    local index=1
+                    local offset=1
+                    local bucket=Array()
+                    while index <= arr:count() do
+                        if index + offset <= arr:count() then
+                            bucket:add(arr:get(index))
+                            bucket:add(arr:get(index + offset)) 
+                            combinations:add(bucket)
+                            bucket = Array()
+                        end 
+                        offset = offset + 1
+                        if offset == arr:count() then
+                            index = index + 1
+                            offset = 1
+                        end
+                    end
+                    --reverse find
+                    local index=arr:count()
+                    local offset=1
+                    while index >= 1 do
+                        if index - offset >= 1 then
+                            bucket:add(arr:get(index))
+                            bucket:add(arr:get(index - offset)) 
+                            combinations:add(bucket)
+                            bucket = Array()
+                        end 
+                        offset = offset + 1
+                        if offset == arr:count() then
+                            index = index - 1
+                            offset = 1
+                        end
+                    end
+                    combinations = combinations:reduce(Array(), function(a, b) 
+                        if not a:contains(b) then 
+                            a:add(b) 
+                        end 
+                        return a 
+                    end)
+                else --3 and above
+                    local n = arr:count()
+                    if size > n then
+                        size = n
+                    end
+
+                    for i = 1, n - size + 1 do
+                        for j = i + 1, n - size + 2 do
+                            local combination = Array()
+                            combination:add(arr:get(i))
+                            combination:add(arr:get(j))
+
+                            if size > 2 then
+                                local remaining = size - 2
+                                local k = j + 1
+                                while remaining > 0 and k <= n do
+                                    combination:add(arr:get(k))
+                                    k = k + 1
+                                    remaining = remaining - 1
+                                end
+                            end
+
+                            combinations:add(combination)
+                        end
+                    end
+                    
+                        -- Reverse combinations
+                    for i = n, size, -1 do
+                        for j = i - 1, size, -1 do
+                            local combination = Array()
+                            combination:add(arr:get(i))
+                            combination:add(arr:get(j))
+
+                            if size > 2 then
+                                local remaining = size - 2
+                                local k = j - 1
+                                while remaining > 0 and k >= 1 do
+                                    combination:add(arr:get(k))
+                                    k = k - 1
+                                    remaining = remaining - 1
+                                end
+                            end
+
+                            combinations:add(combination)
+                        end
+                    end
+
+                    combinations = combinations:reduce(Array(), function(a, b) 
+                        if not a:contains(b) then 
+                            a:add(b) 
+                        end 
+                        return a 
+                    end)
+                end 
+            end 
+            print(combinations)
+            return combinations
+        end 
     }
     setmetatable(arrayInstance, { 
         __tostring = function(self) 
