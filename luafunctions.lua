@@ -1348,6 +1348,22 @@ function Array(...)
                     return index, value
                 end 
             end 
+        end, 
+        allOf = function(self, predicate)
+            if not self:isEmpty() then
+                local currentNode = self.head
+                if not predicate(currentNode.item) then
+                    return false
+                end 
+                while currentNode.next ~= nil do
+                    currentNode = currentNode.next
+                    if not predicate(currentNode.item) then 
+                        return false
+                    end 
+                end 
+                return true
+            end 
+            return false  
         end,
         combinations = function(arr, size)
             local combinations = Array()
@@ -1573,6 +1589,116 @@ setmetatable(_, {
         return getmetatable(_G[k]()).__static
     end
 })
+
+--BitArray class that allows users to perform bitwise operations on numbers before the release of Lua 5.3 
+local function BitArray(num) 
+    num = num or 1
+    --convert to binary number
+    expr = tostring(num)
+    local digits = Array()
+    while math.floor(expr / 2) > 0 do
+        digits:add(expr % 2)
+        expr = math.floor(expr / 2)
+    end 
+    digits:add(expr % 2)
+    digits:reverse()
+    local instance = { 
+        count = function(self)
+            return digits:count()
+        end, 
+        bitShiftLeft = function(self, spaces)
+            for i=1,spaces do 
+                digits:pop()
+            end
+            return self 
+        end, 
+        bitShiftRight = function(self, spaces)
+            for i=1,spaces do
+                digits:remove()
+            end
+            return self
+        end,
+        bitwiseAnd = function(self, other)
+            if TypeOfA(other)=="BitArray" then
+                local enumerator = _("Array").fromTable(other:toString():toCharTable()):map(tonumber):enumerate()
+                digits:map(function(i) 
+                    if i ~= enumerator() then
+                        return 0
+                    else 
+                        return 1
+                    end 
+                end)
+            elseif TypeOfA(other) == "number" then
+                other = BitArray(other)
+                self:bitwiseAnd(other)
+            end
+            return self
+        end,
+        bitwiseOr = function(self, other)
+            if TypeOfA(other)=="BitArray" then
+                local enumerator = _("Array").fromTable(other:toString():toCharTable()):map(tonumber):enumerate()
+                digits:map(function(i) 
+                    if i == 0 and enumerator() == 0 then
+                        return 0
+                    else
+                        return 1
+                    end
+                end) 
+            elseif TypeOfA(other) == "number" then
+                other = BitArray(other)
+                self:bitwiseOr(other)
+            end
+            return self
+        end, 
+        bitwiseXor = function(self, other)
+            if TypeOfA(other)=="BitArray" then
+                local enumerator = _("Array").fromTable(other:toString():toCharTable()):map(tonumber):enumerate()
+                digits:map(function(i) 
+                    if i == enumerator() then 
+                        return 0
+                    else 
+                        return 1
+                    end 
+                end)
+            elseif TypeOfA(other) == "number" then 
+                other = BitArray(other)
+                self:bitwiseXor(other)
+            end 
+            return self 
+        end, 
+        bitwiseNot = function(self)
+            --inverse all the bits in digits
+            digits:map(function(item)  
+                if item == 1 then 
+                    return 0 
+                else 
+                    return 1
+                end 
+            end)
+        end,
+        toString = function(self)
+            return digits:reduce("", function(a, b) a = a .. b; return a end)
+        end 
+    }
+    setmetatable(instance, { 
+        __tostring = function(self)
+            return self:toString() 
+        end, 
+        __static = { 
+            fromBinaryString = function(str)
+                local charArray = _("Array").fromTable(other:toString():toCharTable())
+                if charArray:allOf(function(item) return item == '1' or item == '0') then
+                    --construct 
+                else 
+                    error("Binary strings can only contain '1' or '0' as the value.")
+                end 
+            end
+        }
+    })
+    AssignClassName(instance)
+    return instance
+end
+LoadStatic(BitArray)
 
 local function CyclicArray(...)
     local function Node(item, next)
