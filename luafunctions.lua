@@ -1339,7 +1339,15 @@ function Array(...)
             
         end,
         enumerate = function(self)
-            
+            local index = 1
+            local size = self:count()
+            return function() 
+                if index <= size then 
+                    local value = self:get(index)
+                    index = index + 1
+                    return index, value
+                end 
+            end 
         end,
         combinations = function(arr, size)
             local combinations = Array()
