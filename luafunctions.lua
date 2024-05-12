@@ -125,11 +125,58 @@ string.toCharTable = function(sample)
     return t
 end
 
+string.containsOneOf = function(sample, list)     
+    --[[ 
+        Can be used in the following example to parse the following syntax
+        'if a == { 'a' or 'b' } then'
+    ]]
+    assert(type(sample)=="string", "Sample string must be of type 'string', not " .. TypeOf(sample))
+    assert(type(list) == "table", "Sample string must be of type 'table', not " .. type(list))
+    if type(list) == "table" then 
+        --Do table iteration
+        for _, v in pairs(list) do 
+            if sample:contains(v) then return true end 
+        end 
+    end 
+    return false 
+end 
+
+string.locate = function(sample, str)
+    local start = -1
+    local j = 0
+    for i=0, sample:len()-1 do
+        if start == -1 and sample:get(i) == str:get(j) then 
+            --set anchor
+            start = i
+            if j == str:len() - 1 then 
+                return {
+                    begin = start,
+                    finish = i
+                } 
+            end
+            j = j + 1
+        elseif start ~= -1 and str:get(j) == sample:get(i) then 
+            if j == str:len() - 1 then 
+                return {
+                    begin = start,
+                    finish = i
+                } 
+            end 
+            j = j + 1
+        else
+            start = -1
+        end 
+    end 
+    return nil
+end  
+
 local function TRUNCATE_FLOATING_POINT(d, precision)
     return tonumber(string.format(string.format("%s", string.format("%%.%df", precision)), d))
 end
 
 local _               = _G
+
+local LUA_VERSION_NUMBER = tonumber(_VERSION:gsub("Lua ", ""):match("%d+%.%d+"))
 
 --Keep track of type names
 _["types"]            = { }
