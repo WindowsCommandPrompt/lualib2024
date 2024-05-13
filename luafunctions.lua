@@ -170,6 +170,14 @@ string.locate = function(sample, str)
     return nil
 end  
 
+string.reverse = function(sample)   
+    local newString = ""
+    for i=sample:len(),1,-1 do
+        newString = newString .. sample:get(i)
+    end 
+    return newString
+end 
+
 local function TRUNCATE_FLOATING_POINT(d, precision)
     return tonumber(string.format(string.format("%s", string.format("%%.%df", precision)), d))
 end
@@ -1711,6 +1719,44 @@ local function BitArray(num)
     return instance
 end
 LoadStatic(BitArray)
+
+--Array based binary tree without pointers :)   (WIP) 
+local function BinaryTree()
+    local expr = { }
+    local size = 0
+    local temp = nil 
+    local location = BitArray(0)
+    local instance = { 
+        add = function(self, item)
+            if size == 0 then
+                expr[0] = { }
+                expr[0]['v'] = item
+                size = size + 1
+            else 
+                local locator = "expr[0]"
+                print(location, item)
+                if _("Array").fromTable(location:toString():toCharTable()):subList(2):allOf(function(item) return item == '0' end) then 
+                    --needs to advance'
+                else 
+                    
+                end 
+                location = location + 1
+                size  = size + 1
+            end
+            return self
+        end,
+        toString = function(self)
+            return expr
+        end 
+    }
+    setmetatable(instance, { 
+        __tostring = function(self)
+            return ""
+        end 
+    })
+    AssignClassName(instance)
+    return instance
+end 
 
 local function CyclicArray(...)
     local function Node(item, next)
