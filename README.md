@@ -137,6 +137,69 @@ function super(t)
 end
 ```
 
+The purpose of the 'super' function is to allow direct access to the superclass' as follows
+```lua
+local function Array(...)
+    local instance = {
+        count = function(self)
+            --your implementation
+            return self
+        end 
+    }
+    AssignClassName(instance)
+    return instance
+end
+
+local function CyclicArray(...)
+    local instance = {
+        count = function(self)
+            return super(self).count(self)   --You can just directly use the implementation from the super class
+        end 
+    }
+    AssignClassName(instance, nil, "Array")    --Remember to specify the name of the superclass as 'Array' 
+    return instance
+end 
+```
+
+You can perform the following using metatables if u want to automatically pull inherited methods
+```lua
+local function Array(...)
+    local instance = {
+        count = function(self)
+            --your implementation
+            return self
+        end 
+    }
+    AssignClassName(instance)
+    return instance
+end
+
+local function CyclicArray(...)
+    local instance = {
+        --Leave this part blank 
+    }
+    setmetatable(instance, {
+        __index = function(self, k)
+            for name, v in pairs(super(self)) do 
+                if name == k then
+                    return rawget(super(self), name)
+                end 
+            end 
+            error("Key '" .. tostring(k) .. "' not found in superclass")
+            --return nil   --> for __newindex if you want this subclass to be sealed
+        end,
+        __newindex = function(self, k, v)
+            local target = getmetatable(instance).__index(self, k)
+            if not target then
+                error("This class is sealed")     --this class is sealed
+            end
+        end 
+    })
+    AssignClassName(instance, nil, "Array")    --Remember to specify the name of the superclass as 'Array' 
+    return instance
+end
+```
+
 # Introduction of the Table wrapper class
 The purpose of the 'Table' class is to provide extensibility to the 'table' type directly. You can now concatenate two tables directly. 
 
