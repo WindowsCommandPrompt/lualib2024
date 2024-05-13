@@ -692,11 +692,12 @@ function Array(...)
         }
         return component
     end 
+    local head = nil
     --Start
     local arrayInstance = {
         head = nil,
         count = function(self)  --Return the length of the array
-            local currentNode = self.head
+            local currentNode = head
             local length = 0
             while currentNode ~= nil do
                 length = length + 1
@@ -706,14 +707,14 @@ function Array(...)
         end,
         reverse = function(self)
             local prevNode = nil
-            local currentNode = self.head
+            local currentNode = head
             while currentNode ~= nil do
                 local nextNode = currentNode.next
                 currentNode.next = prevNode
                 prevNode = currentNode
                 currentNode = nextNode
             end
-            self.head = prevNode
+            head = prevNode
             return self
         end, 
         insertAt = function(self, index, value)
@@ -725,18 +726,18 @@ function Array(...)
             self:add(value)
           else 
             --if the specified index is less than self:count()
-            local currentNode = self.head
+            local currentNode = head
             if index == 0 then 
               --create a new node
-              local newNode = Node(value, self.head)
-              self.head = newNode
+              local newNode = Node(value, head)
+              head = newNode
             else
               local count = 1
               repeat
                 currentNode = currentNode.next
                 count = count + 1
               until currentNode.next == nil or count == index
-              local prevNode = self.head
+              local prevNode = head
               repeat
                 prevNode = prevNode.next
               until prevNode.next == currentNode
@@ -748,7 +749,7 @@ function Array(...)
         end,
         replace = function(self, index, value)
           if index >= 1 and index <= self:count() then 
-            local currentNode = self.head
+            local currentNode = head
             if index == 1 then
               currentNode.item = value
               return self
@@ -765,10 +766,10 @@ function Array(...)
           return self
         end,
         add = function(self, elem)   --Add element into the add of the array
-            if self.head == nil then
-                self.head = Node(elem, nil)
+            if head == nil then
+                head = Node(elem, nil)
             else
-                local currentNode = self.head
+                local currentNode = head
                 while currentNode.next ~= nil do
                     currentNode = currentNode.next
                 end
@@ -777,22 +778,22 @@ function Array(...)
             return self
         end,
         pop = function(self)   --pop first element in the array
-            if self.head ~= nil then
-                self.head = self.head.next
+            if head ~= nil then
+                head = head.next
             end 
             return self
         end,
         push = function(self, item)    --insert item at the start of the array
-            local newNode = Node(item, self.head)
-            self.head = newNode
+            local newNode = Node(item, head)
+            head = newNode
             return self
         end,
         remove = function(self, elem)  --pop last element in the array
-            if self.head ~= nil then
-              local currentNode = self.head
+            if head ~= nil then
+              local currentNode = head
               if elem then
                   --Find the first instance of the element and then removes it
-                  if elem == self.head.item then
+                  if elem == head.item then
                       self:pop()
                   else 
                       while currentNode.next ~= nil do
@@ -806,7 +807,7 @@ function Array(...)
                           --Just remove the last node as usual
                           self:remove()
                       else
-                          local auxNode = self.head
+                          local auxNode = head
                           while auxNode.next ~= currentNode do
                               auxNode = auxNode.next
                           end
@@ -820,28 +821,28 @@ function Array(...)
                         currentNode = currentNode.next
                     end 
                     --currentNode at the end of the linked list
-                    local auxNode = self.head
+                    local auxNode = head
                     while auxNode.next ~= currentNode do
                         auxNode = auxNode.next
                     end 
                     auxNode.next = nil 
                   elseif self:count() == 1 then 
-                    self.head = nil 
+                    head = nil 
                   end 
               end
           end 
           return self
         end,
         isEmpty = function(self)  --Check if the array is empty or not
-            return not self.head
+            return not head
         end, 
         peek = function(self)  --Return the first item in the array
-            return self.head.item
+            return head.item
         end, 
         indexOf = function(self, elem)   --Return the index of the items in the list
-            local currentNode = self.head
+            local currentNode = head
             local index = 0
-            if self.head.item == elem or self.head == nil then 
+            if head.item == elem or head == nil then 
                 return index
             else 
                 while currentNode.next ~= nil and currentNode.item ~= elem do
@@ -853,7 +854,7 @@ function Array(...)
         end, 
         get = function(self, index)  --Get item at the specified index
             if index >= 1 and index <= self:count() then 
-                local currentNode = self.head
+                local currentNode = head
                 if index == 1 then 
                     return currentNode.item 
                 else 
@@ -869,8 +870,8 @@ function Array(...)
             end 
         end,
         forEach = function(self, callbackfn)   --Loops through each element in the list
-            if self.head ~= nil then
-                local currentNode = self.head
+            if head ~= nil then
+                local currentNode = head
                 callbackfn(currentNode.item)
                 while currentNode.next ~= nil do
                     currentNode = currentNode.next
@@ -941,8 +942,8 @@ function Array(...)
                 end
                 return false
             else 
-                if self.head ~= nil then
-                    local currentNode = self.head
+                if head ~= nil then
+                    local currentNode = head
                     while currentNode ~= nil do
                         -- Check if the current node matches the sublist
                         local match = true
@@ -1007,8 +1008,8 @@ function Array(...)
                 return starting
             end
             local header = "["
-            if self.head ~= nil then
-                local currentNode = self.head
+            if head ~= nil then
+                local currentNode = head
                 if TypeOf(currentNode.item) == "table" or TypeOf(currentNode.item):contains("Array") or TypeOf(currentNode.item):contains("DoublyLinkedList") then 
                     header = header .. HandleNestedArraysOrTable(self, currentNode.item) 
                 else 
@@ -1037,8 +1038,8 @@ function Array(...)
         toFixedArray = function(self)
             --Once the array is converted into a fixed array, the contents with the array cannot be modified anymore.
             local fixedArrayCallString = "FixedArray(nil"
-            if self.head ~= nil then
-                local currentNode = self.head
+            if head ~= nil then
+                local currentNode = head
                 fixedArrayCallString = fixedArrayCallString .. string.format(",%s", currentNode.item)
                 while currentNode.next ~= nil do
                     currentNode = currentNode.next
@@ -1116,7 +1117,7 @@ function Array(...)
         --use pcall for this function (recommended)
         sum = function(self)
             local total = 0
-            local currentNode = self.head
+            local currentNode = head
             local currentIndex = 1
             if TypeOf(currentNode.item)=="number" then
                 total = total + currentNode.item
@@ -1136,7 +1137,7 @@ function Array(...)
         min = function(self)
             --all elements in the array must be of type number
             local minimum = 0
-            local currentNode = self.head
+            local currentNode = head
             local currentIndex = 1
             if TypeOf(currentNode.item)=="number" then
                 minimum = currentNode.item
@@ -1158,7 +1159,7 @@ function Array(...)
             local maximum = 0
             local currentIndex = 0
             if not self:isEmpty() then
-                local currentNode = self.head 
+                local currentNode = head 
                 if TypeOfA(currentNode.item) == "number" then
                     maximum = currentNode.item
                 else 
@@ -1192,7 +1193,7 @@ function Array(...)
         end, 
         removeAt = function(self, index)
             if not self:isEmpty() then
-                local currentNode = self.head
+                local currentNode = head
                 if index == 1 then
                     self:pop()
                 elseif index == self:count() then
@@ -1202,7 +1203,7 @@ function Array(...)
                     while traversals < index do
                         currentNode = currentNode.next
                     end  
-                    local auxNode = self.head
+                    local auxNode = head
                     while auxNode.next ~= currentNode do 
                         auxNode = auxNode.next
                     end 
@@ -1351,7 +1352,7 @@ function Array(...)
         end, 
         allOf = function(self, predicate)
             if not self:isEmpty() then
-                local currentNode = self.head
+                local currentNode = head
                 if not predicate(currentNode.item) then
                     return false
                 end 
