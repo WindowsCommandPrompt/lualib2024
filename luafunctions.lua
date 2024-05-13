@@ -1685,11 +1685,22 @@ local function BitArray(num)
         __tostring = function(self)
             return self:toString() 
         end, 
+        __add = function(self, other)
+            if TypeOfA(other)=="BitArray" then 
+                local dOther = _("Array").fromTable(other:toString():toCharTable()):map(tonumber):reduce(0, function(a, b) a = (a * 2) + b; return a end)
+                local dSelf = digits:reduce(0, function(a, b) a = (a * 2) + b; return a end)
+                return BitArray(dOther + dSelf)
+            elseif TypeOfA(other) == "number" then 
+                local dSelf = digits:reduce(0, function(a, b) a = (a * 2) + b; return a end)
+                return BitArray(other + dSelf)
+            end 
+        end, 
         __static = { 
             fromBinaryString = function(str)
                 local charArray = _("Array").fromTable(other:toString():toCharTable())
-                if charArray:allOf(function(item) return item == '1' or item == '0') then
-                    --construct 
+                if charArray:allOf(function(item) return item == '1' or item == '0' end) then
+                    --construct the Binary Array from the string 
+                    return BitArray(charArray:reduce(0, function(a, b) a = (a * 2) + b; return a end))
                 else 
                     error("Binary strings can only contain '1' or '0' as the value.")
                 end 
