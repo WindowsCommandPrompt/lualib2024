@@ -1547,6 +1547,13 @@ function Array(...)
                     newArray:add(what)
                 end 
                 return newArray
+            end, 
+            populate = function(iterator)
+                local newArray = Array()
+                for i in iterator() do
+                    newArray:add(i)
+                end
+                return newArray
             end
         }),
         __eq = function(self, other)
@@ -1600,17 +1607,23 @@ setmetatable(_, {
 })
 
 --BitArray class that allows users to perform bitwise operations on numbers before the release of Lua 5.3 
-local function BitArray(num) 
+function BitArray(num) 
     num = num or 1
     --convert to binary number
-    expr = tostring(num)
     local digits = Array()
-    while math.floor(expr / 2) > 0 do
+    if TypeOfA(num) == "number" then
+        expr = tostring(num)
+        while math.floor(expr / 2) > 0 do
+            digits:add(expr % 2)
+            expr = math.floor(expr / 2)
+        end 
         digits:add(expr % 2)
-        expr = math.floor(expr / 2)
+        digits:reverse()
+    else 
+        for i=1,num:len() do
+            digits:add(num:get(i)) 
+        end 
     end 
-    digits:add(expr % 2)
-    digits:reverse()
     local instance = { 
         count = function(self)
             return digits:count()
@@ -1661,9 +1674,12 @@ local function BitArray(num)
         end, 
         bitwiseXor = function(self, other)
             if TypeOfA(other)=="BitArray" then
+                print('current: ', self)
+                print('other: ', other)
                 local enumerator = _("Array").fromTable(other:toString():toCharTable()):map(tonumber):enumerate()
-                digits:map(function(i) 
-                    if i == enumerator() then 
+                digits = digits:map(tonumber):map(function(i) 
+                    local index, value = enumerator()
+                    if i == value then 
                         return 0
                     else 
                         return 1
@@ -1704,11 +1720,11 @@ local function BitArray(num)
             end 
         end, 
         __static = { 
-            fromBinaryString = function(str)
-                local charArray = _("Array").fromTable(other:toString():toCharTable())
+            fromString = function(str)
+                local charArray = _("Array").fromTable(str:toCharTable())
                 if charArray:allOf(function(item) return item == '1' or item == '0' end) then
                     --construct the Binary Array from the string 
-                    return BitArray(charArray:reduce(0, function(a, b) a = (a * 2) + b; return a end))
+                    return BitArray(str)
                 else 
                     error("Binary strings can only contain '1' or '0' as the value.")
                 end 
