@@ -1736,6 +1736,196 @@ function BitArray(num)
 end
 LoadStatic(BitArray)
 
+local FastMatrix = { }
+
+setmetatable(FastMatrix, { 
+    __call = function(self, w, h)
+        w = w or 1
+        h = h or 1
+        local function Node(up, down, left, right, item)
+            local instance = { 
+                up = up, 
+                down = down, 
+                left = left, 
+                right = right,
+                item = item
+            }
+            return instance
+        end
+        local function UpdateLocationToAdd(newRow, newCol)
+            newRow = newRow or 1
+            newCol = newCol or 1
+            return { 
+                row = newRow,
+                col = newCol
+            }
+        end 
+        local whereToAdd = nil 
+        local instance = { 
+            head = nil, 
+            getLength = function(self)
+                return w
+            end, 
+            getHeight = function(self)
+                return h
+            end, 
+            isEmpty = function(self)
+                return self.head == nil
+            end, 
+            add = function(self, item) 
+                --Construct the node in this 
+                if self:isEmpty() then 
+                    local newNode = Node(nil, nil, nil, nil, item)
+                    self.head = newNode
+                    whereToAdd = UpdateLocationToAdd(1, 2)
+                else 
+                    if whereToAdd.row == 1 then
+                        --up, down, right should be nil for now
+                        --traverse on the first row to the prevNode
+                        local currentNode = self.head
+                        while currentNode.right ~= nil do
+                            currentNode = currentNode.right
+                        end 
+                        --got the previous node
+                        local newNode = Node(currentNode, nil, nil, nil, item)
+                        currentNode.right = newNode
+                        if whereToAdd.col < w then
+                            whereToAdd = UpdateLocationToAdd(whereToAdd.row, whereToAdd.col + 1)
+                        else 
+                            whereToAdd = UpdateLocationToAdd(whereToAdd.row + 1, 1)
+                        end
+                    else --if it is not the first row
+                        --get the node directly above it
+                        local currentNode = self.head
+                        while currentNode.down ~= nil do
+                            currentNode = currentNode.down
+                        end
+                        --newNode should be bound to currentNode
+                        if whereToAdd.col == 1 then
+                            --left, right, down is nil
+                            local newNode = Node(currentNode, nil, nil, nil, item)
+                            currentNode.down = newNode
+                        
+                        else 
+                            while currentNode.right ~= nil do
+                                currentNode = currentNode.right
+                            end
+                            --currentNode now needs to be on the left
+                            --we need to get the up element
+                            local upElement = currentNode.up.right
+                            --bind upElement and currentNode to newNode
+                            local newNode = Node(upElement, nil, currentNode, nil, item)
+                            upElement.down = newNode
+                            currentNode.right = newNode
+                        end 
+                        
+                        if whereToAdd.col < w then
+                            whereToAdd = UpdateLocationToAdd(whereToAdd.row, whereToAdd.col + 1)
+                        else 
+                            whereToAdd = UpdateLocationToAdd(whereToAdd.row + 1, 1)
+                        end
+                    end
+                end 
+                return self
+            end,
+            get = function(self, row, col)
+                if not self:isEmpty() then
+                    local rowTraverse = 1
+                    local currentNode = self.head
+                    if row == 1 and col == 1 then
+                        return currentNode.item
+                    end
+                    while rowTraverse < row do
+                        rowTraverse = rowTraverse + 1
+                        currentNode = currentNode.right
+                    end
+                    local colTraverse = 1
+                    while colTraverse < col do
+                        colTraverse = colTraverse + 1
+                        currentNode = currentNode.down
+                    end
+                    return currentNode.item
+                else 
+                    error("The matrix is empty. Unable to index.")
+                end  
+            end,
+            reset = function(self)
+                self.head = nil 
+                return self
+            end,
+            toString = function(self)
+                local outString = ""
+                if not self:isEmpty() then
+                    local firstNode = self.head
+                    local firstNodeReference = self.head
+                    outString = outString .. (firstNode.item or "nil")
+                    outString = outString .. " "
+                    while firstNode.right ~= nil do
+                        firstNode = firstNode.right 
+                        outString = outString .. (firstNode.item or "nil")
+                        outString = outString .. " "
+                    end 
+                    outString = outString .. "\n"
+                    while firstNodeReference.down ~= nil do
+                        firstNodeReference = firstNodeReference.down
+                        firstNode = firstNodeReference
+                        outString = outString .. (firstNode.item or "nil")
+                        outString = outString .. " "
+                        while firstNode.right ~= nil do
+                            firstNode = firstNode.right
+                            outString = outString .. (firstNode.item or "nil")
+                            outString = outString .. " " 
+                        end      
+                        outString = outString .. "\n"
+                    end 
+                    --fill up remaining empty cells with 'nil'
+                    
+                end
+                return outString
+            end,
+            contains = function(self, other)
+                local testFrameWidth = other:getLength()
+                local testFrameHeight = other:getHeight()
+                local testFrame = FastMatrix(testFrameWidth, testFrameHeight)
+                
+                for rowOffset = 0, self:getHeight() - testFrameHeight do
+                    for colOffset = 0, self:getLength() - testFrameWidth do
+                        for i = 1, testFrameHeight do
+                            for j = 1, testFrameWidth do
+                                testFrame:add(self:get(j + colOffset, i + rowOffset)) 
+                            end 
+                        end 
+                        --print(testFrame:toString())
+                        --print("=======================")
+                        if testFrame:toString() == other:toString() then
+                            return true
+                        end 
+                        testFrame:reset()
+                    end 
+                end 
+                
+                return false
+            end
+        }
+        setmetatable(instance, { 
+            __tostring = function(self) 
+                return self:toString()
+            end 
+        })
+        return instance
+    end
+})
+
+function FastMatrix.fromTable(t)
+    local newFastMatrix = FastMatrix(t[1]:len(), #t)
+    for i=1, #t do
+        for j=1,t[i]:len() do
+            newFastMatrix:add(t[i]:sub(j,j))
+        end
+    end 
+    return newFastMatrix
+end
+
 --Array based binary tree without pointers :)   (WIP) 
 local function BinaryTree()
     local expr = { }
