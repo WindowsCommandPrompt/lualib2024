@@ -1923,6 +1923,33 @@ setmetatable(FastMatrix, {
                     self:add(newItem)
                 end 
                 return self
+            end,
+            replace = function(self, row, col, newItem)
+                if not (row <= self:getHeight()) then 
+                    error("Error: Index out of bounds for matrix height of " .. self:getHeight()) 
+                end 
+                
+                if not (col <= self:getLength()) then
+                    error("Error: Index out of bounds for matrix length of " .. self:getLength()) 
+                end 
+                
+                local rowTraverse = 1
+                local currentNode = self.head
+                if row == 1 and col == 1 then
+                    currentNode.item = newItem
+                end
+                while rowTraverse < row do
+                    rowTraverse = rowTraverse + 1
+                    currentNode = currentNode.down
+                end
+                local colTraverse = 1
+                while colTraverse < col do
+                    colTraverse = colTraverse + 1
+                    currentNode = currentNode.right
+                end
+                currentNode.item = newItem
+
+                return self
             end
         }
         setmetatable(instance, { 
@@ -2846,5 +2873,10 @@ return {
     TypeOf = TypeOf,
     AssignClassName = AssignClassName,
     StringExtension = StringExtension,
+    CyclicArray = CyclicArray,
+    BitArray = BitArray,
+    FastMatrix = FastMatrix,
+    Map = Map, 
+    DoublyLinkedList = DoublyLinkedList
     _ = _
 }
