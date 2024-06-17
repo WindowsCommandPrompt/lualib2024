@@ -1849,7 +1849,7 @@ setmetatable(FastMatrix, {
                     error("The matrix is empty. Unable to index.")
                 end  
             end,
-            reset = function(self)
+            clear = function(self)
                 self.head = nil 
                 return self
             end,
@@ -1905,6 +1905,24 @@ setmetatable(FastMatrix, {
                 end 
                 
                 return false
+            end,
+            --[[ 
+              Effectively replaces the following: 
+              replaceAll = function(self, newItem)
+                for i=1, self:getHeight() do
+                    for j=1, self:getLength() do
+                        self:replace(i, j, newItem)
+                    end 
+                end 
+                return self
+              end
+            ]]
+            reset = function(self, newItem)
+                self:clear()
+                for i=1, (w * h) do
+                    self:add(newItem)
+                end 
+                return self
             end
         }
         setmetatable(instance, { 
