@@ -371,6 +371,488 @@ assert(TypeOf(os)=="table", "Cannot run this file because the table os is no lon
 --Check if contents of built-in modules have been modified
 --=================================================================================
 
+--Fraction class use for performing arithmetic operations on fractions and returning a fraction. 
+local function Fraction(a, b, c)
+  a = a or 0
+  b = b or 0
+  c = c or 1
+  if type(a) ~= "number" then 
+    error("The first parameter must be of type number. Given: " .. type(a))
+  end
+  if type(b) ~= "number" then
+    error("The second parameter must be of type number. Given: " .. type(b))
+  end
+  if type(c) ~= "number" then 
+    error("The third parameter must be of type number. Given: " .. type(c))
+  end
+  if c == 0 then
+    error("The denominator of a fraction cannot be 0")
+  end
+  local instance = { 
+    _whole = a,
+    _numerator = b,
+    _denominator = c,
+    getNumerator = function(self)
+      return self._numerator
+    end,
+    setNumerator = function(self, numerator)
+      self._numerator = numerator
+      return self
+    end,
+    getDenominator = function(self)
+      return self._denominator
+    end, 
+    setDenominator = function(self, denominator)
+      --any number value other than 0
+      self._denominator = denominator
+      return self
+    end,
+    getWhole = function(self)
+      return self._whole
+    end,
+    setWhole = function(self, whole)
+      self._whole = whole
+      return self
+    end,
+    toString = function(self, mode)
+      mode = mode or 2
+      if mode == 0 then 
+        if self:getWhole() ~= 0 then
+          return string.format("  %d\n%d %s\n  %d", self:getNumerator(), self:getWhole(), string.rep('-', tostring(self:getDenominator()):len()),self:getDenominator())
+        else 
+          return string.format("%d\n%s\n%d", self:getNumerator(), string.rep('-', tostring(self:getDenominator()):len()),self:getDenominator())
+        end
+      elseif mode == 1 then
+        --represent as improper fraction
+        local whole = self:getWhole()
+        local numerator = self:getNumerator()
+        local denominator = self:getDenominator()
+        return string.format("%d\n%s\n%d", self:getNumerator() + self:getWhole() * self:getDenominator(), string.rep('-', tostring(self:getDenominator()):len()),self:getDenominator())
+      elseif mode == 2 then 
+        --represent as improper fraction, in programming syntax
+        local whole = self:getWhole()
+        local numerator = self:getNumerator()
+        local denominator = self:getDenominator()
+        return string.format("%d / %d", self:getNumerator() + self:getWhole() * self:getDenominator(),self:getDenominator())
+      end
+    end
+  }
+  setmetatable(instance, { 
+    __newindex = function(self, k, v)
+      error("You are not allowed to add methods into this class. This is a read-only or sealed class")
+    end,
+    __mul = function(self, other)
+      local ownDenominator = self:getDenominator()
+      local otherDenominator = other:getDenominator()
+      local ownNumerator = self:getNumerator() 
+      local otherNumerator = other:getNumerator()
+      local ownWhole = self:getWhole()
+      local otherWhole = other:getWhole()
+      --transform the mixed number into an improper fraction first
+      if ownWhole > 0 then
+        self = self:setNumerator((self:getWhole() * ownDenominator) + ownNumerator)
+            :setWhole(0)
+        ownNumerator = self:getNumerator()
+      end
+      if otherWhole > 0 then
+        other = other:setNumerator((other:getWhole() * otherDenominator) + otherNumerator)
+                     :setWhole(0)
+        otherNumerator = other:getNumerator()
+      end
+      self = self:setNumerator(ownNumerator * otherNumerator):setDenominator(ownDenominator * otherDenominator)
+      return self
+    end, 
+    __div = function(self, other)
+      local ownDenominator = self:getDenominator()
+      local otherDenominator = other:getDenominator()
+      local ownNumerator = self:getNumerator() 
+      local otherNumerator = other:getNumerator()
+      local ownWhole = self:getWhole()
+      local otherWhole = other:getWhole()
+      --transform the mixed number into an improper fraction first
+      if ownWhole > 0 then
+        self = self:setNumerator((self:getWhole() * ownDenominator) + ownNumerator)
+            :setWhole(0)
+        ownNumerator = self:getNumerator()
+      end
+      if otherWhole > 0 then
+        other = other:setNumerator((other:getWhole() * otherDenominator) + otherNumerator)
+                     :setWhole(0)
+        otherNumerator = other:getNumerator()
+      end
+      --find the reciprocal of other and perform multiplication. 
+      other = other:setNumerator(otherDenominator):setDenominator(otherNumerator)
+      self = self * other
+      return self
+    end, 
+    __sub = function(self, other)
+      --basically __add but just change all signs to '-' 
+      local ownDenominator = self:getDenominator()
+      local otherDenominator = other:getDenominator()
+      local ownNumerator = self:getNumerator() 
+      local otherNumerator = other:getNumerator()
+      local ownWhole = self:getWhole()
+      local otherWhole = other:getWhole()
+      --transform the mixed number into an improper fraction first
+      if ownWhole > 0 then
+        self = self:setNumerator((self:getWhole() * ownDenominator) + ownNumerator)
+            :setWhole(0)
+        ownNumerator = self:getNumerator()
+      end
+      if otherWhole > 0 then
+        other = other:setNumerator((other:getWhole() * otherDenominator) + otherNumerator)
+                     :setWhole(0)
+        otherNumerator = other:getNumerator()
+      end
+      if ownDenominator ~= otherDenominator then
+        if ownDenominator < otherDenominator then
+if tonumber(_ENV[_VERSION]) <= 5.2 then
+          local result = otherDenominator / ownDenominator
+          local precisionAdd = ""
+          if not tostring(result):find("%.") then 
+            precisionAdd = precisionAdd .. tostring(result) .. ".0"
+          else
+            precisionAdd = tostring(result)
+          end
+          if precisionAdd:sub(select(1, precisionAdd:find("%."))+1) == "0" then 
+            other = other:setNumerator(other:getNumerator() * result):setDenominator(other:getDenominator() * result)
+            self = self:setNumerator(self:getNumerator() + other:getNumerator())
+          else
+            newlocal = self:setNumerator(ownNumerator * otherDenominator)
+                           :setDenominator(ownDenominator * otherDenominator)
+            newforeign = other:setNumerator(otherNumerator * ownDenominator)
+                              :setDenominator(otherDenominator * ownDenominator)
+            self = newlocal:setNumerator(newlocal:getNumerator() - newforeign:getNumerator())
+          end
+else --for other versions, for example Lua 5.3 and Lua 5.4
+          local result = otherDenominator / ownDenominator
+          if tostring(result):sub(select(1, tostring(result):find('%.'))+1) == "0" then
+            other = other:setNumerator(other:getNumerator() * result):setDenominator(other:getDenominator() * result)
+            self = self:setNumerator(self:getNumerator() + other:getNumerator())
+          else
+            newlocal = self:setNumerator(ownNumerator * otherDenominator)
+                           :setDenominator(ownDenominator * otherDenominator)
+            newforeign = other:setNumerator(otherNumerator * ownDenominator)
+                              :setDenominator(otherDenominator * ownDenominator)
+            self = newlocal:setNumerator(newlocal:getNumerator() - newforeign:getNumerator())
+          end
+end 
+        else
+if tonumber(_ENV[_VERSION]) <= 5.2 then  --backwards compatibility
+          local result = ownDenominator / otherDenominator
+          local precisionAdd = ""
+          if not tostring(result):find("%.") then 
+            precisionAdd = precisionAdd .. tostring(result) .. ".0" 
+          else 
+            precisionAdd = tostring(result)
+          end
+          if precisionAdd:sub(select(1, precisionAdd:find("%."))+1) == "0" then 
+            other = other:setNumerator(other:getNumerator() * result):setDenominator(other:getDenominator() * result)
+            self = self:setNumerator(self:getNumerator() - other:getNumerator())
+          else --not a perfect division
+            newlocal = self:setNumerator(ownNumerator * otherDenominator)
+                           :setDenominator(ownDenominator * otherDenominator)
+            newforeign = other:setNumerator(otherNumerator * ownDenominator)
+                              :setDenominator(otherDenominator * ownDenominator)
+            self = newlocal:setNumerator(newlocal:getNumerator() - newforeign:getNumerator())
+          end
+else --if some other version for example Lua 5.3, Lua 5.4
+          local result = ownDenominator / otherDenominator
+          if tostring(result):sub(select(1, tostring(result):find('%.'))+1) == "0" then
+            other = other:setNumerator(other:getNumerator() * result):setDenominator(other:getDenominator() * result)
+            self = self:setNumerator(self:getNumerator() - other:getNumerator())
+          else
+            newlocal = self:setNumerator(ownNumerator * otherDenominator)
+                           :setDenominator(ownDenominator * otherDenominator)
+            newforeign = other:setNumerator(otherNumerator * ownDenominator)
+                              :setDenominator(otherDenominator * ownDenominator)
+            self = newlocal:setNumerator(newlocal:getNumerator() - newforeign:getNumerator())
+          end
+end
+        end
+      else
+        self = self:setNumerator(self:getNumerator() - other:getNumerator())
+      end
+      --try to simplify the fraction afterwards
+      local numeratorFactorGenerator = coroutine.create(function() 
+        if self:getNumerator() > 0 then
+          for i=1,self:getNumerator() do
+            if self:getNumerator() % i == 0 then
+              coroutine.yield(i)
+            end
+          end
+        else
+          for i=1, math.abs(self:getNumerator()) do
+            if math.abs(self:getNumerator()) % i == 0 then
+              coroutine.yield(i)
+            end
+          end
+        end
+      end)
+      local denominatorFactorGenerator = coroutine.create(function() 
+        if self:getDenominator() > 0 then
+          for i=1, self:getDenominator() do
+            if self:getDenominator() % i == 0 then
+              coroutine.yield(i)
+            end
+          end
+        else 
+          for i=1, math.abs(self:getDenominator()) do
+            if math.abs(self:getDenominator()) % i == 0 then
+              coroutine.yield(i)
+            end
+          end
+        end
+      end)
+      local numeratorFactorSet = { }
+      local denominatorFactorSet = { }
+      repeat
+        local success, result = coroutine.resume(numeratorFactorGenerator)
+        if result then
+          table.insert(numeratorFactorSet, result)
+        end
+      until coroutine.status(numeratorFactorGenerator) == "dead"
+      repeat
+        local success, result = coroutine.resume(denominatorFactorGenerator)
+        if result then
+          table.insert(denominatorFactorSet, result)
+        end
+      until coroutine.status(denominatorFactorGenerator) == "dead"
+      setmetatable(numeratorFactorSet, { 
+        __pow = function(self, operand)
+          assert(type(operand)=="table")
+          local commonItems = { }
+          if #self > #operand then
+            table.forEach(self, function(i) 
+              if table.contains(operand, i) then
+                table.insert(commonItems, i)
+              end 
+            end)
+          else
+            table.forEach(operand, function(i)
+              if table.contains(self, i) then
+                table.insert(commonItems, i)
+              end 
+            end)
+          end
+          return commonItems
+        end
+      })
+      local allFactors = numeratorFactorSet ^ denominatorFactorSet
+      local highestCommonFactor = 0
+      for i=1, #allFactors do
+        if allFactors[i] > highestCommonFactor then 
+          highestCommonFactor = allFactors[i]
+        end 
+      end
+      self = self:setNumerator(self:getNumerator() / highestCommonFactor):setDenominator(self:getDenominator() / highestCommonFactor)
+      --check if value is greater than 1
+      if math.abs(self:getNumerator()) >= self:getDenominator() then
+if tonumber(_ENV[_VERSION]) <= 5.2 then
+        local newWhole = math.floor(self:getNumerator() / self:getDenominator()) 
+        local newNumerator = self:getNumerator() % self:getDenominator()
+        self = self:setWhole(newWhole):setNumerator(newNumerator)
+else --for later lua versions
+        local loader = load([[
+          newWhole = self:getNumerator() // self:getDenominator()  --in lua 5.3 and above you can use the '//' operator for floor divisions
+          return newWhole 
+        ]])  
+        local newWhole = loader()
+        local newNumerator = self:getNumerator() % self:getDenominator()
+        self = self:setWhole(newWhole):setNumerator(newNumerator)
+end
+      end
+      return self
+    end,
+    __add = function(self, other)
+      local ownDenominator = self:getDenominator()
+      local otherDenominator = other:getDenominator()
+      local ownNumerator = self:getNumerator() 
+      local otherNumerator = other:getNumerator()
+      local ownWhole = self:getWhole()
+      local otherWhole = other:getWhole()
+      --transform the mixed number into an improper fraction first
+      if ownWhole > 0 then
+        self = self:setNumerator((self:getWhole() * ownDenominator) + ownNumerator)
+            :setWhole(0)
+        ownNumerator = self:getNumerator()
+      end
+      if otherWhole > 0 then
+        other = other:setNumerator((other:getWhole() * otherDenominator) + otherNumerator)
+                     :setWhole(0)
+        otherNumerator = other:getNumerator()
+      end
+      if ownDenominator ~= otherDenominator then
+        if ownDenominator < otherDenominator then
+if tonumber(_ENV[_VERSION]) <= 5.2 then
+          local result = otherDenominator / ownDenominator
+          local precisionAdd = ""
+          if not tostring(result):find("%.") then 
+            precisionAdd = precisionAdd .. tostring(result) .. ".0"
+          else
+            precisionAdd = tostring(result)
+          end
+          if precisionAdd:sub(select(1, precisionAdd:find("%."))+1) == "0" then 
+            other = other:setNumerator(other:getNumerator() * result):setDenominator(other:getDenominator() * result)
+            self = self:setNumerator(self:getNumerator() + other:getNumerator())
+          else
+            newlocal = self:setNumerator(ownNumerator * otherDenominator)
+                           :setDenominator(ownDenominator * otherDenominator)
+            newforeign = other:setNumerator(otherNumerator * ownDenominator)
+                              :setDenominator(otherDenominator * ownDenominator)
+            self = newlocal:setNumerator(newlocal:getNumerator() + newforeign:getNumerator())
+          end
+else --for other versions, for example Lua 5.3 and Lua 5.4
+          local result = otherDenominator / ownDenominator
+          if tostring(result):sub(select(1, tostring(result):find('%.'))+1) == "0" then
+            other = other:setNumerator(other:getNumerator() * result):setDenominator(other:getDenominator() * result)
+            self = self:setNumerator(self:getNumerator() + other:getNumerator())
+          else
+            newlocal = self:setNumerator(ownNumerator * otherDenominator)
+                           :setDenominator(ownDenominator * otherDenominator)
+            newforeign = other:setNumerator(otherNumerator * ownDenominator)
+                              :setDenominator(otherDenominator * ownDenominator)
+            self = newlocal:setNumerator(newlocal:getNumerator() + newforeign:getNumerator())
+          end
+end 
+        else
+if tonumber(_ENV[_VERSION]) <= 5.2 then  --backwards compatibility
+          local result = ownDenominator / otherDenominator
+          local precisionAdd = ""
+          if not tostring(result):find("%.") then 
+            precisionAdd = precisionAdd .. tostring(result) .. ".0" 
+          else 
+            precisionAdd = tostring(result)
+          end
+          if precisionAdd:sub(select(1, precisionAdd:find("%."))+1) == "0" then 
+            other = other:setNumerator(other:getNumerator() * result):setDenominator(other:getDenominator() * result)
+            self = self:setNumerator(self:getNumerator() + other:getNumerator())
+          else --not a perfect division
+            newlocal = self:setNumerator(ownNumerator * otherDenominator)
+                           :setDenominator(ownDenominator * otherDenominator)
+            newforeign = other:setNumerator(otherNumerator * ownDenominator)
+                              :setDenominator(otherDenominator * ownDenominator)
+            self = newlocal:setNumerator(newlocal:getNumerator() + newforeign:getNumerator())
+          end
+else --if some other version for example Lua 5.3, Lua 5.4
+          local result = ownDenominator / otherDenominator
+          if tostring(result):sub(select(1, tostring(result):find('%.'))+1) == "0" then
+            other = other:setNumerator(other:getNumerator() * result):setDenominator(other:getDenominator() * result)
+            self = self:setNumerator(self:getNumerator() + other:getNumerator())
+          else
+            newlocal = self:setNumerator(ownNumerator * otherDenominator)
+                           :setDenominator(ownDenominator * otherDenominator)
+            newforeign = other:setNumerator(otherNumerator * ownDenominator)
+                              :setDenominator(otherDenominator * ownDenominator)
+            self = newlocal:setNumerator(newlocal:getNumerator() + newforeign:getNumerator())
+          end
+end
+        end
+      else
+        self = self:setNumerator(self:getNumerator() + other:getNumerator())
+      end
+      --try to simplify the fraction afterwards
+      local numeratorFactorGenerator = coroutine.create(function() 
+        if self:getNumerator() > 0 then
+          for i=1,self:getNumerator() do
+            if self:getNumerator() % i == 0 then
+              coroutine.yield(i)
+            end
+          end
+        else 
+          for i=1,math.abs(self:getNumerator()) do
+            if math.abs(self:getNumerator()) % i == 0 then
+              coroutine.yield(i)
+            end
+          end
+        end
+      end)
+      local denominatorFactorGenerator = coroutine.create(function()
+        if self:getDenominator() > 0 then
+          for i=1, self:getDenominator() do
+            if self:getDenominator() % i == 0 then
+              coroutine.yield(i)
+            end
+          end
+        else
+          for i=1, math.abs(self:getDenominator()) do
+            if math.abs(self:getDenominator()) % i == 0 then
+              coroutine.yield(i)
+            end
+          end
+        end
+      end)
+      local numeratorFactorSet = { }
+      local denominatorFactorSet = { }
+      repeat
+        local success, result = coroutine.resume(numeratorFactorGenerator)
+        if result then
+          table.insert(numeratorFactorSet, result)
+        end
+      until coroutine.status(numeratorFactorGenerator) == "dead"
+      repeat
+        local success, result = coroutine.resume(denominatorFactorGenerator)
+        if result then
+          table.insert(denominatorFactorSet, result)
+        end
+      until coroutine.status(denominatorFactorGenerator) == "dead"
+      setmetatable(numeratorFactorSet, { 
+        __pow = function(self, operand)
+          assert(type(operand)=="table")
+          local commonItems = { }
+          if #self > #operand then
+            table.forEach(self, function(i) 
+              if table.contains(operand, i) then
+                table.insert(commonItems, i)
+              end 
+            end)
+          else
+            table.forEach(operand, function(i)
+              if table.contains(self, i) then
+                table.insert(commonItems, i)
+              end 
+            end)
+          end
+          return commonItems
+        end
+      })
+      local allFactors = numeratorFactorSet ^ denominatorFactorSet
+      local highestCommonFactor = 0
+      for i=1, #allFactors do
+        if allFactors[i] > highestCommonFactor then 
+          highestCommonFactor = allFactors[i]
+        end 
+      end
+      self = self:setNumerator(self:getNumerator() / highestCommonFactor):setDenominator(self:getDenominator() / highestCommonFactor)
+      --check if value is greater than 1
+      if math.abs(self:getNumerator()) >= self:getDenominator() then
+if tonumber(_ENV[_VERSION]) <= 5.2 then
+        local newWhole = math.floor(self:getNumerator() / self:getDenominator()) 
+        local newNumerator = self:getNumerator() % self:getDenominator()
+        self = self:setWhole(newWhole):setNumerator(newNumerator)
+else
+        local loader = load([[
+          newWhole = self:getNumerator() // self:getDenominator()  --in lua 5.3 and above you can use the '//' operator for floor divisions
+          return newWhole 
+        ]])  
+        local newWhole = loader()
+        local newNumerator = self:getNumerator() % self:getDenominator()
+        self = self:setWhole(newWhole):setNumerator(newNumerator)
+end
+      end
+      return self
+    end,
+    __idiv = function(self, operand) 
+    end,
+    __tostring = function(self)
+      return instance:toString()
+    end
+  })
+  AssignClassName(instance)
+  return instance
+end
+
+
 function FixedArray(size, ...)
     local vararg = {...}
     assert(TypeOf(size)=="number" or TypeOf(size)=="nil", "The type of the first parameter must be of type number")
@@ -2877,6 +3359,7 @@ return {
     BitArray = BitArray,
     FastMatrix = FastMatrix,
     Map = Map, 
-    DoublyLinkedList = DoublyLinkedList
+    DoublyLinkedList = DoublyLinkedList,
+    Fraction = Fraction,
     _ = _
 }
