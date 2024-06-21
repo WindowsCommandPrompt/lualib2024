@@ -506,7 +506,7 @@ local function Fraction(a, b, c)
       end
       if ownDenominator ~= otherDenominator then
         if ownDenominator < otherDenominator then
-if tonumber(_ENV[_VERSION]) <= 5.2 then
+if LUA_VERSION_NUMBER <= 5.2 then
           local result = otherDenominator / ownDenominator
           local precisionAdd = ""
           if not tostring(result):find("%.") then 
@@ -538,7 +538,7 @@ else --for other versions, for example Lua 5.3 and Lua 5.4
           end
 end 
         else
-if tonumber(_ENV[_VERSION]) <= 5.2 then  --backwards compatibility
+if LUA_VERSION_NUMBER <= 5.2 then  --backwards compatibility
           local result = ownDenominator / otherDenominator
           local precisionAdd = ""
           if not tostring(result):find("%.") then 
@@ -648,7 +648,7 @@ end
       self = self:setNumerator(self:getNumerator() / highestCommonFactor):setDenominator(self:getDenominator() / highestCommonFactor)
       --check if value is greater than 1
       if math.abs(self:getNumerator()) >= self:getDenominator() then
-if tonumber(_ENV[_VERSION]) <= 5.2 then
+if LUA_VERSION_NUMBER <= 5.2 then
         local newWhole = math.floor(self:getNumerator() / self:getDenominator()) 
         local newNumerator = self:getNumerator() % self:getDenominator()
         self = self:setWhole(newWhole):setNumerator(newNumerator)
@@ -684,7 +684,7 @@ end
       end
       if ownDenominator ~= otherDenominator then
         if ownDenominator < otherDenominator then
-if tonumber(_ENV[_VERSION]) <= 5.2 then
+if LUA_VERSION_NUMBER <= 5.2 then
           local result = otherDenominator / ownDenominator
           local precisionAdd = ""
           if not tostring(result):find("%.") then 
@@ -716,7 +716,7 @@ else --for other versions, for example Lua 5.3 and Lua 5.4
           end
 end 
         else
-if tonumber(_ENV[_VERSION]) <= 5.2 then  --backwards compatibility
+if LUA_VERSION_NUMBER <= 5.2 then  --backwards compatibility
           local result = ownDenominator / otherDenominator
           local precisionAdd = ""
           if not tostring(result):find("%.") then 
@@ -826,7 +826,7 @@ end
       self = self:setNumerator(self:getNumerator() / highestCommonFactor):setDenominator(self:getDenominator() / highestCommonFactor)
       --check if value is greater than 1
       if math.abs(self:getNumerator()) >= self:getDenominator() then
-if tonumber(_ENV[_VERSION]) <= 5.2 then
+if LUA_VERSION_NUMBER <= 5.2 then
         local newWhole = math.floor(self:getNumerator() / self:getDenominator()) 
         local newNumerator = self:getNumerator() % self:getDenominator()
         self = self:setWhole(newWhole):setNumerator(newNumerator)
@@ -834,7 +834,7 @@ else
         local loader = load([[
           newWhole = self:getNumerator() // self:getDenominator()  --in lua 5.3 and above you can use the '//' operator for floor divisions
           return newWhole 
-        ]])  
+        ]], "chunk", "t", { self = self })    
         local newWhole = loader()
         local newNumerator = self:getNumerator() % self:getDenominator()
         self = self:setWhole(newWhole):setNumerator(newNumerator)
