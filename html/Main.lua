@@ -1354,3 +1354,106 @@ function style(prop)
   end
   return string.format("<style>\n\t\t\t\t\t%s\n\t\t\t\t</style>\n\t\t\t\t", prop.inner)
 end
+
+function p(prop)   --for the paragraph tag
+  local function ExecuteCoroutineReturnJavaScriptFunc(target)
+    local str = "" 
+    while coroutine.status(target) ~= "dead" do 
+      local status, val = coroutine.resume(target) 
+      if val then 
+        str = str .. val
+      end
+    end
+    return str
+  end
+  local function AssertStyleFormat(inlineStyle) 
+    
+  end 
+  if type(prop.inner)=="string" or type(prop.inner)=="nil" then 
+    return string.format("\n\t\t\t\t<p%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>%s</p>",
+      Operator.Ternary(prop.id, string.format(" id=\"%s\"", prop.id), ""),
+      Operator.Ternary(prop.class, string.format(" class=\"%s\"", prop.class), ""),
+      Operator.Ternary(prop.style, string.format(" style=\"%s\"", prop.style), ""),
+      Operator.Ternary(prop.title, string.format(" title=\"%s\"", prop.title), ""),
+      Operator.Ternary(prop.tabindex, string.format(" tabindex=\"%s\"", prop.tabindex), ""),
+      Operator.Ternary(prop.lang, string.format(" lang=\"%s\"", prop.lang), ""),
+      Operator.Ternary(prop.content_editable, string.format(" content-editable=\"%s\"", prop.content_editable), ""),
+      Operator.Ternary(prop.draggable, string.format(" draggable=\"%s\"", prop.draggable), ""),
+      Operator.Ternary(prop.inputmode, string.format(" inputmode=\"%s\"", prop.inputmode), ""),
+      Operator.Ternary(prop.autocapitalize, string.format(" autocapitalize=\"%s\"", prop.autocapitalize), ""),
+      Operator.Ternary(prop.dir, string.format(" dir=\"%s\"", prop.dir), ""),
+      Operator.Ternary(prop.onclick, function() return string.format(" onclick=\"%s\"", string.format("(()=>{%s})()",ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onclick)))) end, ""),
+      Operator.Ternary(prop.ondblclick, function() return string.format(" ondblclick=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondblclick)))) end, ""),
+      Operator.Ternary(prop.onmousedown, function() return string.format(" onmousedown=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmousedown)))) end, ""),
+      Operator.Ternary(prop.onmousemove, function() return string.format(" onmousemove=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmousemove)))) end, ""),
+      Operator.Ternary(prop.onmousemove, function() return string.format(" onmousemove=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmousemove)))) end, ""),
+      Operator.Ternary(prop.onmouseout, function() return string.format(" onmouseout=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmouseout)))) end, ""),
+      Operator.Ternary(prop.onmouseover, function() return string.format(" onmouseover=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmouseover)))) end, ""),
+      Operator.Ternary(prop.onmouseover, function() return string.format(" onmouseover=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmouseover)))) end, ""),
+      Operator.Ternary(prop.onmouseup, function() return string.format(" onmouseup=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmouseup)))) end, ""),
+      Operator.Ternary(prop.onwheel, function() return string.format(" onwheel=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onwheel)))) end, ""),
+      Operator.Ternary(prop.ondrag, function() return string.format(" ondrag=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondrag)))) end, ""),
+      Operator.Ternary(prop.ondragend, function() return string.format(" ondragend=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondragend)))) end, ""),
+      Operator.Ternary(prop.ondragcenter, function() return string.format(" ondragcenter=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondragcenter)))) end, ""),
+      Operator.Ternary(prop.ondragleave, function() return string.format(" ondragleave=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondragleave)))) end, ""),
+      Operator.Ternary(prop.ondragover, function() return string.format(" ondragover=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondragover)))) end, ""),
+      Operator.Ternary(prop.ondragstart, function() return string.format(" ondragstart=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondragstart)))) end, ""),
+      Operator.Ternary(prop.ondrop, function() return string.format(" ondrop=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondrop)))) end, ""),
+      Operator.Ternary(prop.onscroll, function() return string.format(" onscroll=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onscroll)))) end, ""),
+Operator.Ternary(prop.oncopy, function() return string.format(" oncopy=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.oncopy)))) end, ""),
+      Operator.Ternary(prop.oncut, function() return string.format(" oncut=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.oncut)))) end, ""),
+      Operator.Ternary(prop.onpaste, function() return string.format(" onpaste=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onpaste)))) end, ""),
+      Operator.Ternary(prop.onkeydown, function() return string.format(" onkeydown=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onkeydown)))) end, ""),
+      Operator.Ternary(prop.onkeypress, function() return string.format(" onkeypress=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onkeypress)))) end, ""),
+      Operator.Ternary(prop.onkeyup, function() return string.format(" onkeyup=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onscroll)))) end, ""),
+      prop.inner or ""
+    )
+  else 
+    return string.format("\n\t\t\t\t<p%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>%s</p>",
+      Operator.Ternary(prop.id, string.format(" id=\"%s\"", prop.id), ""),
+      Operator.Ternary(prop.class, string.format(" class=\"%s\"", prop.class), ""),
+      Operator.Ternary(prop.style, string.format(" style=\"%s\"", prop.style), ""),
+      Operator.Ternary(prop.title, string.format(" title=\"%s\"", prop.title), ""),
+      Operator.Ternary(prop.tabindex, string.format(" tabindex=\"%s\"", prop.tabindex), ""),
+      Operator.Ternary(prop.lang, string.format(" lang=\"%s\"", prop.lang), ""),
+      Operator.Ternary(prop.content_editable, string.format(" content-editable=\"%s\"", prop.content_editable), ""),
+      Operator.Ternary(prop.draggable, string.format(" draggable=\"%s\"", prop.draggable), ""),
+      Operator.Ternary(prop.inputmode, string.format(" inputmode=\"%s\"", prop.inputmode), ""),
+      Operator.Ternary(prop.autocapitalize, string.format(" autocapitalize=\"%s\"", prop.autocapitalize), ""),
+      Operator.Ternary(prop.dir, string.format(" dir=\"%s\"", prop.dir), ""),
+      Operator.Ternary(prop.onclick, function() 
+        return string.format(" onclick=\"%s\"", string.format("(()=>{%s})()",ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onclick)))) 
+      end, ""),
+      Operator.Ternary(prop.ondblclick, function() return string.format(" ondblclick=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondblclick)))) end, ""),
+      Operator.Ternary(prop.onmousedown, function() return string.format(" onmousedown=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmousedown)))) end, ""),
+      Operator.Ternary(prop.onmousemove, function() return string.format(" onmousemove=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmousemove)))) end, ""),
+      Operator.Ternary(prop.onmousemove, function() return string.format(" onmousemove=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmousemove)))) end, ""),
+      Operator.Ternary(prop.onmouseout, function() return string.format(" onmouseout=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmouseout)))) end, ""),
+      Operator.Ternary(prop.onmouseover, function() return string.format(" onmouseover=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmouseover)))) end, ""),
+      Operator.Ternary(prop.onmouseover, function() return string.format(" onmouseover=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmouseover)))) end, ""),
+      Operator.Ternary(prop.onmouseup, function() return string.format(" onmouseup=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onmouseup)))) end, ""),
+      Operator.Ternary(prop.onwheel, function() return string.format(" onwheel=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onwheel)))) end, ""),
+      Operator.Ternary(prop.ondrag, function() return string.format(" ondrag=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondrag)))) end, ""),
+      Operator.Ternary(prop.ondragend, function() return string.format(" ondragend=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondragend)))) end, ""),
+      Operator.Ternary(prop.ondragcenter, function() return string.format(" ondragcenter=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondragcenter)))) end, ""),
+      Operator.Ternary(prop.ondragleave, function() return string.format(" ondragleave=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondragleave)))) end, ""),
+      Operator.Ternary(prop.ondragover, function() return string.format(" ondragover=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondragover)))) end, ""),
+      Operator.Ternary(prop.ondragstart, function() return string.format(" ondragstart=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondragstart)))) end, ""),
+      Operator.Ternary(prop.ondrop, function() return string.format(" ondrop=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.ondrop)))) end, ""),
+      Operator.Ternary(prop.onscroll, function() return string.format(" onscroll=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onscroll)))) end, ""),
+      Operator.Ternary(prop.oncopy, function() return string.format(" oncopy=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.oncopy)))) end, ""),
+      Operator.Ternary(prop.oncut, function() return string.format(" oncut=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.oncut)))) end, ""),
+      Operator.Ternary(prop.onpaste, function() return string.format(" onpaste=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onpaste)))) end, ""),
+      Operator.Ternary(prop.onkeydown, function() return string.format(" onkeydown=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onkeydown)))) end, ""),
+      Operator.Ternary(prop.onkeypress, function() return string.format(" onkeypress=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onkeypress)))) end, ""),
+      Operator.Ternary(prop.onkeyup, function() return string.format(" onkeyup=\"%s\"", string.format("(()=>{%s})()", ExecuteCoroutineReturnJavaScriptFunc(coroutine.create(prop.onscroll)))) end, ""),
+      (function() 
+        local full = [[]]
+        table.forEach(prop.inner, function(i)
+            full = full .. i
+        end) 
+        return full 
+      end)()
+    )
+  end
+end
