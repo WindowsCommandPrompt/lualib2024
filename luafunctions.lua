@@ -190,6 +190,16 @@ local LUA_VERSION_NUMBER = tonumber(_VERSION:gsub("Lua ", ""):match("%d+%.%d+"))
 _["types"]            = { }
 local abs             = math.abs
 
+local Operator = { 
+  Ternary = function(cond, ifTrue, ifFalse)
+    assert(TypeOfA(cond)=="boolean", "The first parameter must be of a boolean value")
+    if cond then 
+      return ifTrue 
+    else 
+      return ifFalse
+  end
+} 
+
 function FinalizeTable(t)
     assert(type(t) == "table", "The argument must be of type table, not: " .. type(t))
     local proxy = { }
@@ -3353,6 +3363,8 @@ return {
     Table = Table,
     FinalizeTable = FinalizeTable,
     TypeOf = TypeOf,
+    TypeOfA = TypeOfA,
+    Operator = Operator,
     AssignClassName = AssignClassName,
     StringExtension = StringExtension,
     CyclicArray = CyclicArray,
