@@ -1,5 +1,9 @@
 --import Operator.Ternary
 
+local function execute(statement)
+  return coroutine.yield(statement)
+end
+
 function html(prop) 
   return Operator.Ternary(type(prop.inner)=="string", string.format([[
     <!DOCTYPE html>
