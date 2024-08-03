@@ -2442,6 +2442,117 @@ setmetatable(FastMatrix, {
                 currentNode.item = newItem
 
                 return self
+            end,
+            sumOfCol = function(self, colNum)
+                if colNum >= 1 and colNum <= self:getHeight() then 
+                    local currentNode = self.head --start  from the first node 
+                    local sum = 0  --keep track of the sum
+                    if colNum == 1 then --if the specified column index is 1  
+                        sum = currentNode.item  --assign the sum with the value of the first node
+                        while currentNode.down ~= nil do --begin traversals to the bottom-most node
+                            currentNode = currentNode.down --traverse 
+                            sum = sum + currentNode.item --add the value to the sum variable 
+                        end 
+                    else
+                        local traversals = 1
+                        while traversals < colNum do
+                            currentNode = currentNode.right
+                            traversals = traversals + 1 
+                        end
+                        sum = currentNode.item
+                        while currentNode.down ~= nil do
+                            currentNode = currentNode.down
+                            sum = sum + currentNode.item
+                        end 
+                    end 
+                    return sum 
+                else 
+                    error("Index out of bounds")
+                end 
+            end, 
+            sumOfRow = function(self, rowNum)
+                if rowNum >= 1 and rowNum <= self:getLength() then 
+                    local currentNode = self.head
+                    local sum = 0
+                    if rowNum == 1 then
+                        sum = currentNode.item
+                        while currentNode.right ~= nil do
+                            currentNode = currentNode.right
+                            sum = sum + currentNode.item
+                        end 
+                    else 
+                        local traversals = 1
+                        while traversals < rowNum do
+                            currentNode = currentNode.down
+                            traversals = traversals + 1
+                        end 
+                        sum = currentNode.item
+                        while currentNode.right ~= nil do 
+                            currentNode = currentNode.right
+                            sum = sum + currentNode.item
+                        end 
+                    end 
+                    return sum
+                else 
+                    error("Index out of bounds")
+                end
+            end,
+            getElementsOfCol = function(self, colNum)
+                if colNum >= 1 and colNum <= self:getHeight() then
+                    local currentNode = self.head 
+                    local outArr = { }
+                    if colNum == 1 then
+                        table.insert(outArr, currentNode.item)
+                        while currentNode.down ~= nil do
+                            currentNode = currentNode.down
+                            table.insert(outArr, currentNode.item) 
+                        end 
+                    else 
+                        local traversals = 1 
+                        while traversals < colNum do
+                            currentNode = currentNode.right 
+                            traversals = traversals + 1
+                        end 
+                        table.insert(outArr, currentNode.item)
+                        while currentNode.down ~= nil do 
+                            currentNode = currentNode.down
+                            table.insert(outArr, currentNode.item) 
+                        end 
+                    end 
+                    return outArr 
+                else 
+                    error("Index out of bounds")
+                end 
+            end, 
+            getElementsOfRow = function(self, rowNum)
+                local outArr = { }
+                if rowNum >= 1 and rowNum <= self:getLength() then
+                    local currentNode = self.head 
+                    if rowNum == 1 then
+                        table.insert(outArr, currentNode.item)
+                        while currentNode.right ~= nil do
+                            currentNode = currentNode.right
+                            table.insert(outArr, currentNode.item)
+                        end 
+                    else 
+                        local traversals = 1
+                        while traversals < rowNum do 
+                            currentNode = currentNode.down
+                            traversals = traversals + 1
+                        end 
+                        table.insert(outArr, currentNode.item)
+                        while currentNode.right ~= nil do
+                            currentNode = currentNode.right
+                            table.insert(outArr, currentNode.item)
+                        end 
+                    end 
+                    return outArr
+                else 
+                    error("Index out of bounds")
+                end
+            end,
+            find = function(self, elem) 
+                
             end
         }
         setmetatable(instance, { 
