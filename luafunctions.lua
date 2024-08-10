@@ -1418,7 +1418,7 @@ function Array(...)
                 finish = endIndex 
             }
         end, 
-        contains = function(self, item)
+        contains = function(self, sublist)
  -- Checks whether sublist exists within the list
             if TypeOfA(sublist) == "Array" then
                 local sublistLength = sublist:count()
