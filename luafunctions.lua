@@ -2561,6 +2561,7 @@ setmetatable(FastMatrix, {
                 return self:toString()
             end 
         })
+        AssignClassName(instance)
         return instance
     end
 })
