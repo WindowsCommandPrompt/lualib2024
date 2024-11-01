@@ -2576,6 +2576,22 @@ function FastMatrix.fromTable(t)
     return newFastMatrix
 end
 
+function FastMatrix.fromTableOfStringsSparse(t)
+    local tArray = _("Array").fromTable(t)
+    local allAreStrings = tArray:allOf(function(item) return TypeOfA(item) == "string" end)
+    
+    if allAreStrings then
+        local longestString = tArray:map(function(item) return item:len() end):max()
+        local newFastMatrix = FastMatrix(longestString, tArray:count())
+        for i=1, tArray:count() do 
+            for j=1, longestString do
+                newFastMatrix:add(Operator.Ternary(tArray:get(i):sub(j, j) ~= '', tArray:get(i):sub(j, j), "\0"))
+            end 
+        end
+        return newFastMatrix
+    end 
+end
+
 --Array based binary tree without pointers :)   (WIP) 
 local function BinaryTree()
     local expr = { }
